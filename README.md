@@ -1,8 +1,12 @@
 # Laminar.cycle
 
+![Main workflow](https://github.com/vic/laminar_cycle/workflows/Main%20workflow/badge.svg?branch=master)
+[![Jipack](https://jitpack.io/v/vic/laminar_cycle.svg)](https://jitpack.io/#vic/laminar_cycle)
+
 ![Everything is a Stream][everything-is-a-stream]
 
 [Cycle] style apps using [Laminar] on [ScalaJS]
+
 
 ## Installation
 
