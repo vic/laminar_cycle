@@ -163,7 +163,7 @@ def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Div = {
   val updatedState: EventStream[State] = ???
  
   div(
-    counterView(currentState),
+    counterView(stateSignal),
     actionControls(actions.out),
     state.addOut[Div](updatedState)
   )
@@ -204,7 +204,7 @@ def counterView(state: Observable[State]): Div = {
 
 
 
-[JitPack]: https://jitpack.io/#vic/laminar.cycle
+[JitPack]: https://jitpack.io/#vic/laminar_cycle
 [Cycle]: https://cycle.js.org/
 [Airstream]: https://github.com/raquo/Airstream
 [Laminar]: https://github.com/raquo/Laminar
@@ -216,9 +216,9 @@ def counterView(state: Observable[State]): Div = {
 [senses-actuators]: https://cycle.js.org/img/actuators-senses.svg
 [cycle-dialogue]: https://cycle.js.org/dialogue.html
 
-[Counter]: http://github.io/vic/laminar.cycle/examples/cycle_counter/
+[Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/
 [counter-source]: examples/cycle_counter/src
-[NestedIndent]: http://github.io/vic/laminar.cycle/examples/nested_indent/
+[NestedIndent]: https://vic.github.io/laminar_cycle/examples/nested_indent/
 [nested-indent-source]: examples/nested_indent/src
 
 [laminar-cycle]: cycle/src/Cycle.scala
