@@ -1,0 +1,6 @@
+jdk:
+  - openjdk11
+before_install:
+  - ./ci jitpack deps
+install:
+  - ./ci jitpack

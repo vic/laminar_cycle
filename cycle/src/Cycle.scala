@@ -10,7 +10,7 @@ trait Cycle {
 
   object SubscribeOnMount {
     implicit def toModifier[El <: Element](
-      sub: SubscribeOnMount[El]
+        sub: SubscribeOnMount[El]
     ): Modifier[El] = sub.subscribeOnMount
   }
 
@@ -21,23 +21,23 @@ trait Cycle {
     def map[T](operator: I => T): InOut[T, O] = compose(_.map(operator))
     def compose[T](operator: EventStream[I] => EventStream[T]): InOut[T, O] =
       new InOut[T, O] {
-        override val in = self.in.compose(operator)
+        override val in  = self.in.compose(operator)
         override val out = self.out
       }
 
     def fold[X, Y, El <: Element](
-      inOperator: I => X,
-      outOperator: Y => O
+        inOperator: I => X,
+        outOperator: Y => O
     ): InOut[X, Y] with SubscribeOnMount[El] =
       composeBoth(_.map(inOperator), _.map(outOperator))
 
     def composeBoth[X, Y, El <: Element](
-      inOperator: EventStream[I] => EventStream[X],
-      outOperator: EventStream[Y] => EventStream[O]
+        inOperator: EventStream[I] => EventStream[X],
+        outOperator: EventStream[Y] => EventStream[O]
     ): InOut[X, Y] with SubscribeOnMount[El] = {
       val bus = new EventBus[Y]
       new InOut[X, Y] with SubscribeOnMount[El] {
-        override val in = self.in.compose(inOperator)
+        override val in  = self.in.compose(inOperator)
         override val out = bus.writer
         override val subscribeOnMount: Modifier[El] = onMountCallback { ctx =>
           implicit val owner = ctx.owner
@@ -47,16 +47,16 @@ trait Cycle {
     }
 
     def contramap[T, El <: Element](
-      operator: T => O
+        operator: T => O
     ): InOut[I, T] with SubscribeOnMount[El] =
       contracompose(_.map(operator))
 
     def contracompose[T, El <: Element](
-      operator: EventStream[T] => EventStream[O]
+        operator: EventStream[T] => EventStream[O]
     ): InOut[I, T] with SubscribeOnMount[El] = {
       val bus = new EventBus[T]
       new InOut[I, T] with SubscribeOnMount[El] {
-        override val in = self.in
+        override val in  = self.in
         override val out = bus.writer
         override val subscribeOnMount: Modifier[El] = onMountCallback { ctx =>
           implicit val owner = ctx.owner
@@ -80,7 +80,7 @@ trait Cycle {
 
     implicit def fromEventBus[T](eventBus: EventBus[T]): IO[T] =
       new InOut[T, T] {
-        override val in = eventBus.events
+        override val in  = eventBus.events
         override val out = eventBus.writer
       }
 
@@ -90,7 +90,7 @@ trait Cycle {
     }
 
     implicit def toEventStream[I](io: InOut[I, _]): EventStream[I] = io.in
-    implicit def toWriteBus[O](io: InOut[_, O]): WriteBus[O] = io.out
+    implicit def toWriteBus[O](io: InOut[_, O]): WriteBus[O]       = io.out
 
   }
 
@@ -99,7 +99,7 @@ trait Cycle {
   def onMount[El <: Element]: IO[MountContext[El]] with SubscribeOnMount[El] = {
     val bus = new EventBus[MountContext[El]]
     new IO[MountContext[El]] with SubscribeOnMount[El] {
-      override val in = bus.events
+      override val in  = bus.events
       override val out = bus.writer
       override val subscribeOnMount: Modifier[El] = onMountCallback { ctx =>
         org.scalajs.dom.console.log("Mount", ctx.thisNode.ref)
@@ -109,5 +109,7 @@ trait Cycle {
       }
     }
   }
+
+  def amend[El <: Element](mods: Mod[El]*): Mod[El] = inContext[El](el => el.amend(mods: _*))
 
 }

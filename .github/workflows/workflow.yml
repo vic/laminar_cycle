@@ -1,0 +1,71 @@
+name: Main workflow
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+  schedule:
+    - cron: "0 0 * * 5"
+
+jobs:
+  scalafmt:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Test
+        run:  ./ci scalafmt-test
+
+  test:
+    needs: scalafmt
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Asdf install
+        uses: asdf-vm/actions/install@v1.0.0
+      - name: Test
+        run:  ./ci test
+
+  jitpack-commit:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: JitPack commit build
+        run: curl -vSL https://jitpack.io/com/github/$GITHUB_REPOSITORY/$GITHUB_SHA/build.log || true
+
+  jitpack-release:
+    needs: test
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'tags')
+    steps:
+      - name: JitPack release build
+        run: |
+          curl -vSL https://jitpack.io/com/github/$GITHUB_REPOSITORY/$(echo "${{github.ref}}" | sed 's#tags/##')/build.log || true
+
+  gh-pages:
+    needs: test
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'master')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Asdf install
+        uses: asdf-vm/actions/install@v1.0.0
+      - name: Build pages
+        run:  ./ci gh-pages
+      - name: Deploy pages
+        uses: JamesIves/github-pages-deploy-action@releases/v3
+        with:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: gh-pages

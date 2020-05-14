@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -ex -o pipefail
+
+mkdir -p $HOME/bin
+export PATH=$HOME/bin:$PATH
+
+case "$*" in
+
+ jitpack)
+   mill -i _.publishM2Local
+ ;;
+
+ gh-pages)
+   mill -i examples._.fastOpt
+   mkdir -p gh-pages
+   cp -rf README.md examples/ gh-pages/
+   find out/ -iname "out.*" | xargs tar -c - | tar -C gh-pages/ -x -
+ ;;
+
+ scalafmt)
+   curl -o cs -qL https://git.io/coursier-cli
+   chmod +x cs
+   ./cs launch scalafmt -- --mode diff --diff-branch master
+ ;;
+
+ scalafmt-test)
+   curl -o cs -qL https://git.io/coursier-cli
+   chmod +x cs
+   ./cs launch scalafmt -- --mode diff --diff-branch master --test
+ ;;
+
+ "jitpack deps")
+     # asdf depends on column and asdf-java depends on jq,
+     # however it seems there's no way to install system dependencies on jitpack container.
+     # We just install mill and set a jdk on jitpack.yml
+     echo installing mill via curl
+     mill_version=$(awk '/mill/ {print $2}' .tool-versions)
+     curl -o $HOME/bin/mill -L https://github.com/lihaoyi/mill/releases/download/$mill_version/$mill_version
+     chmod +x $HOME/bin/mill
+ ;;
+
+ test)
+   mill -i __.compile
+ ;;
+
+esac
