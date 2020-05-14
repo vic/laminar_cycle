@@ -216,9 +216,9 @@ def counterView(state: Observable[State]): Div = {
 [senses-actuators]: https://cycle.js.org/img/actuators-senses.svg
 [cycle-dialogue]: https://cycle.js.org/dialogue.html
 
-[Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/
+[Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/src/index.html
 [counter-source]: examples/cycle_counter/src
-[NestedIndent]: https://vic.github.io/laminar_cycle/examples/nested_indent/
+[NestedIndent]: https://vic.github.io/laminar_cycle/examples/nested_indent/src/index.html
 [nested-indent-source]: examples/nested_indent/src
 
 [laminar-cycle]: cycle/src/Cycle.scala
