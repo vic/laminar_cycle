@@ -68,7 +68,10 @@ stimuli (`Response`) from the API but also might produce stimuli for it (`Reques
 import com.raquo.laminar.api.L._
 import ExternalAPI.{Request, Response}
 
-def computer(api: cycle.InOut[Request, Response]) = {
+def computer(api: cycle.InOut[Response, Request]) = {
+  // api.in  has type EventStream[Response]
+  // api.out has type WriteBus[Request]
+
   // define the behavior of `actuators` somehow
 }
 ```
