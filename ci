@@ -14,7 +14,7 @@ case "$*" in
    mill -i examples._.fastOpt
    mkdir -p gh-pages
    cp -rf README.md examples/ gh-pages/
-   find out/ -iname "out.*" | xargs tar -c - | tar -C gh-pages/ -x -
+   find out/ -iname "out.*" | cpio -p -dumv gh-pages/
  ;;
 
  scalafmt)
