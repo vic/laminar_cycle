@@ -46,20 +46,20 @@ private[cycle] trait Cycle {
       SubscribeOnMount.cycle[El, I, O](self, inverse)
     }
 
-    def map[T](operator: I => T): CIO[T, O] = compose(_.map(operator))
-    def compose[T](operator: EventStream[I] => EventStream[T]): CIO[T, O] =
+    def mapI[T](operator: I => T): CIO[T, O] = composeI(_.map(operator))
+    def composeI[T](operator: EventStream[I] => EventStream[T]): CIO[T, O] =
       new CIO[T, O] {
         override val input  = self.input.compose(operator)
         override val output = self.output
       }
 
-    def fold[X, Y, El <: Element](
+    def foldIO[X, Y, El <: Element](
         inOperator: I => X,
         outOperator: Y => O
     ): (CIO[X, Y], SubscribeOnMount[El]) =
-      composeBoth(_.map(inOperator), _.map(outOperator))
+      composeIO(_.map(inOperator), _.map(outOperator))
 
-    def composeBoth[X, Y, El <: Element](
+    def composeIO[X, Y, El <: Element](
         inOperator: EventStream[I] => EventStream[X],
         outOperator: EventStream[Y] => EventStream[O]
     ): (CIO[X, Y], SubscribeOnMount[El]) = {
@@ -74,12 +74,12 @@ private[cycle] trait Cycle {
       io -> som
     }
 
-    def contramap[T, El <: Element](
+    def contramapO[T, El <: Element](
         operator: T => O
     ): (CIO[I, T], SubscribeOnMount[El]) =
-      contracompose(_.map(operator))
+      contracomposeO(_.map(operator))
 
-    def contracompose[T, El <: Element](
+    def contracomposeO[T, El <: Element](
         operator: EventStream[T] => EventStream[O]
     ): (CIO[I, T], SubscribeOnMount[El]) = {
       val bus = new EventBus[T]

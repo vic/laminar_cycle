@@ -60,6 +60,10 @@ object drivers extends Module {
   object topic extends Driver {
     override def artifactName = "topic-driver"
   }
+
+  object compose extends Driver {
+    override def artifactName = "compose-driver"
+  }
 }
 
 object examples extends Module {
