@@ -38,8 +38,8 @@ trait Cycle {
   }
 
   trait InOut[I, O] { self =>
-    val in: EventStream[I]
-    val out: WriteBus[O]
+    private[cycle] val in: EventStream[I]
+    private[cycle] val out: WriteBus[O]
 
     def cycle[El <: Element](inverse: InOut[O, I]): SubscribeOnMount[El] = {
       SubscribeOnMount.cycle[El, I, O](self, inverse)
@@ -127,22 +127,6 @@ trait Cycle {
   }
 
   type IO[T] = InOut[T, T]
-
-  /*
-  def onMount[El <: Element]: IO[MountContext[El]] with SubscribeOnMount[El] = {
-    val bus = new EventBus[MountContext[El]]
-    new IO[MountContext[El]] with SubscribeOnMount[El] {
-      override val in  = bus.events
-      override val out = bus.writer
-      override val subscribeOnMount: Modifier[El] = onMountCallback { ctx =>
-        org.scalajs.dom.console.log("Mount", ctx.thisNode.ref)
-        val es =
-          EventStream.fromValue(ctx, emitOnce = true).debugLog("MOOUNTED ")
-        out.addSource(es)(ctx.owner)
-      }
-    }
-  }
-   */
 
   def amend[El <: Element](mods: Mod[El]*): Mod[El] = inContext[El](el => el.amend(mods: _*))
 

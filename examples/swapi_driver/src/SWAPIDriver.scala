@@ -16,16 +16,16 @@ object SWAPIDriver {
     }
 
   def apply[El <: Element](fn: SWAPI.InOut => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
-    val (io, oi) = cycle.InOut.split[Request, (Request, Response)]
+    val (oi, io) = cycle.InOut.split[(Request, Response), Request]
 
-    val reqAndRes: EventStream[(Request, Response)] = io.in.flatMap { req =>
+    val reqAndRes: EventStream[(Request, Response)] = io.flatMap { req =>
       EventStream
         .fromFuture(processRequest(req))
         .map(res => req -> res)
     }
 
     cycle.amend[El](
-      reqAndRes --> io.out,
+      reqAndRes --> io,
       fn(oi)
     )
   }

@@ -29,21 +29,20 @@ object Example {
   }
 
   def cycled(swapi: SWAPI.InOut, input: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
-    val currentInput = input.in.startWith("")
+    val currentInput = input.startWith("")
 
-    val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit.in
+    val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
       .withCurrentValueOf(currentInput)
       .map(_._2.trim)
       .filterNot(_.isEmpty)
       .map(SWAPI.FindPeople(_))
 
-    val viewSearchResults: EventStream[Div] = swapi.in.collect {
+    val viewSearchResults: EventStream[Div] = swapi.collect {
       case (req: SWAPI.FindPeople, res: SWAPI.FoundPeople) => req -> res
     }.map2(renderFoundPeople)
 
     div(
-      cls := "app",
-      searchForm(currentInput, input.out, submit.out),
+      searchForm(currentInput, input, submit),
       child <-- viewSearchResults,
       findPeopleReqs --> swapi
     )

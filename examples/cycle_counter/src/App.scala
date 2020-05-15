@@ -27,17 +27,14 @@ object Counter {
   def actionControls(actions: Observer[Action]): Mod[Div] = {
     cycle.amend(
       button(
-        cls := "btn secondary",
         "Increment",
         onClick.mapTo(Increment) --> actions
       ),
       button(
-        cls := "btn secondary",
         "Decrement",
         onClick.mapTo(Decrement) --> actions
       ),
       button(
-        cls := "btn secondary",
         "Reset",
         onClick.mapTo(Reset) --> actions
       )
@@ -55,11 +52,11 @@ object Counter {
     val currentState: Signal[State] = state.startWith(initialState)
 
     val updatedState: EventStream[State] =
-      actions.in.withCurrentValueOf(currentState).map(Function.tupled(performAction))
+      actions.withCurrentValueOf(currentState).map(Function.tupled(performAction))
 
     div(
       counterView(currentState),
-      actionControls(actions.out),
+      actionControls(actions),
       updatedState --> state
     )
   }

@@ -122,11 +122,11 @@ import Counter._
 def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Mod[Element] = {
   // Initialize the computer's internal state and keep it on a Signal[State]
   // in order to always have a *current value*
-  val stateSignal: Signal[State] = states.in.startWith(State(0, 0))
+  val stateSignal: Signal[State] = states.startWith(State(0, 0))
   
   // Now, whenever we sense a user Action, we have to update our current state
   val updatedState: EventStream[State] = 
-     actions.in.withCurrentValueOf(stateSignal).map(Function.tupled(performAction))
+     actions.withCurrentValueOf(stateSignal).map(Function.tupled(performAction))
  
   updatedState --> states
 }
@@ -173,7 +173,7 @@ def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Div = {
  
   div(
     counterView(stateSignal),
-    actionControls(actions.out),
+    actionControls(actions),
     updatedState --> state
   )
 }
