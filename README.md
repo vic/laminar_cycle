@@ -122,7 +122,7 @@ Having the above types, we could define our `computer` function like:
 ```scala
 import Counter._
 
-def computer(states: cycle.SIO[State], actions: cycle.SIO[Action]): Mod[Element] = {
+def computer(states: cycle.EIO[State], actions: cycle.EIO[Action]): Mod[Element] = {
   // Initialize the computer's internal state and keep it on a Signal[State]
   // in order to always have a *current value*
   val stateSignal: Signal[State] = states.startWith(State(0, 0))
@@ -144,13 +144,10 @@ def performAction(action: Action, state: State): State = action match {
 
 Let's explore our previous example code.
 
-* The `cycle.SIO[T]` type is just an alias for `cycle.CIO[T, T]`. 
+* The `cycle.EIO[E]` type is just an alias for `cycle.CIO[E, E]`. 
 
-  SIO stands for SameIO, meaning that both, senses and actuators have the same type `T`.
-  > Oops, I did it again. :D -- [@vic]
-  
-  It's equivalent to [Airstream]'s `EventBus[T]`
-
+  EIO stands for EqualIO, meaning that both, senses and actuators have the same type `E`.
+  It's equivalent to [Airstream]'s `EventBus[E]`
 
 * Our previous example does not render anything (we will get to producing views later).
 
@@ -173,7 +170,7 @@ Now, we will refactor our `computer` function to actually render a user interfac
 For brevity sake, we will add `???` for previously seen code.
 
 ```scala
-def computer(states: cycle.SIO[State], actions: cycle.SIO[Action]): Div = {
+def computer(states: cycle.EIO[State], actions: cycle.EIO[Action]): Div = {
   val stateSignal: Signal[State] = ???
   val updatedState: EventStream[State] = ???
  

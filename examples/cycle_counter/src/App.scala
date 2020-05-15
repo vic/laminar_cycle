@@ -48,7 +48,7 @@ object Counter {
     )
   }
 
-  def apply(state: SIO[State], actions: SIO[Action]): Div = {
+  def apply(state: EIO[State], actions: EIO[Action]): Div = {
     val currentState: Signal[State] = state.startWith(initialState)
 
     val updatedState: EventStream[State] =
@@ -64,7 +64,7 @@ object Counter {
 }
 
 object Main extends App {
-  val state   = SIO[Counter.State]
-  val actions = SIO[Counter.Action]
+  val state   = EIO[Counter.State]
+  val actions = EIO[Counter.Action]
   render(dom.document.getElementById("app"), Counter(state, actions))
 }

@@ -98,7 +98,7 @@ private[cycle] trait Cycle {
     def apply[I, O]: (CIO[I, O], CIO[O, I]) =
       splitEventBus(new EventBus[I], new EventBus[O])
 
-    implicit def fromEventBus[T](eventBus: EventBus[T]): SIO[T] =
+    implicit def fromEventBus[T](eventBus: EventBus[T]): EIO[T] =
       new CIO[T, T] {
         override val input  = eventBus.events
         override val output = eventBus.writer
@@ -116,7 +116,7 @@ private[cycle] trait Cycle {
       io -> oi
     }
 
-    def toEventBus[T](io: SIO[T]): EventBus[T] = new EventBus[T] {
+    def toEventBus[T](io: EIO[T]): EventBus[T] = new EventBus[T] {
       override val events = io.input
       override val writer = io.output
     }
@@ -126,9 +126,9 @@ private[cycle] trait Cycle {
 
   }
 
-  type SIO[T] = CIO[T, T]
-  object SIO {
-    def apply[T]: SIO[T] = new EventBus[T]
+  type EIO[T] = CIO[T, T]
+  object EIO {
+    def apply[T]: EIO[T] = new EventBus[T]
   }
 
   def amend[El <: Element](mods: Mod[El]*): Mod[El] = inContext[El](el => el.amend(mods: _*))
