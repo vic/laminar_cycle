@@ -95,6 +95,9 @@ trait Cycle {
 
   object InOut {
 
+    def split[I, O]: (InOut[I, O], InOut[O, I]) =
+      splitEventBus(new EventBus[I], new EventBus[O])
+
     implicit def fromEventBus[T](eventBus: EventBus[T]): IO[T] =
       new InOut[T, T] {
         override val in  = eventBus.events

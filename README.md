@@ -54,6 +54,9 @@ all we need now is a function to model the previously seen cycle dialogue abstra
 As an example of _Senses_ and _Actuators_, suppose you need to interact with
 some external API by sending it `Request`s and receiving `Response`es from it.
 
+Sidenote: once you finish reading this guide, you might want to look at the [SWAPIDriver][swapi-driver-source]
+example to see how to implement a [Cycle driver][cycle-driver] in Laminar.
+
 ```scala
 object ExternalAPI {
   sealed trait Request
@@ -207,6 +210,18 @@ def counterView(state: Observable[State]): Div = {
 
 * [Counter] ([source][counter-source])
 
+  Runnable implementation of the counter example on README.md.
+  
+  Shows basics of using `cycle.InOut` types, handling user actions to update 
+  the current state and update a view based on it.
+
+* [SWAPIDriver] ([source][swapi-driver-source])
+
+  Search StartWars characters by name.
+  
+  Shows how a [Cycle driver][cycle-driver] looks like with Laminar.
+  
+  The SWAPIDriver makes http requests to a the [SWAPI] database via REST.
 
 
 [JitPack]: https://jitpack.io/#vic/laminar_cycle
@@ -220,8 +235,13 @@ def counterView(state: Observable[State]): Div = {
 [everything-is-a-stream]: https://camo.githubusercontent.com/e581baffb3db3e4f749350326af32de8d5ba4363/687474703a2f2f692e696d6775722e636f6d2f4149696d5138432e6a7067
 [senses-actuators]: https://cycle.js.org/img/actuators-senses.svg
 [cycle-dialogue]: https://cycle.js.org/dialogue.html
+[cycle-driver]: https://cycle.js.org/drivers.html
 
 [Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/src/index.html
 [counter-source]: examples/cycle_counter/src
+
+[SWAPI]: https://swapi.dev/
+[SWAPIDriver]: https://vic.github.io/laminar_cycle/examples/swapi_driver/src/index.html
+[swapi-driver-source]: examples/swapi_driver/src
 
 [laminar-cycle]: cycle/src/Cycle.scala

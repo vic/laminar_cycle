@@ -31,6 +31,7 @@ object examples extends Module {
   }
 
   object cycle_counter extends Example
+  object swapi_driver extends Example
 
 }
 
