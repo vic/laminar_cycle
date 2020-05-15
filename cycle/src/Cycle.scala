@@ -1,6 +1,7 @@
 package cycle
 
 import com.raquo.laminar.api.L._
+import com.raquo.laminar.nodes.ReactiveElement
 
 trait Cycle {
 
@@ -25,9 +26,9 @@ trait Cycle {
 
     def apply[El <: Element, T](fn: MountContext[El] => (EventStream[T], WriteBus[T])): SubscribeOnMount[El] =
       new SubscribeOnMount[El] {
-        val subscribeOnMount = onMountCallback[El] { ctx: MountContext[El] =>
+        val subscribeOnMount: Modifier[El] = onMountBind[El] { ctx =>
           val (in: EventStream[T], out: WriteBus[T]) = fn(ctx)
-          out.addSource(in)(ctx.owner)
+          Binder[El](el => ReactiveElement.bindBus(el, in)(out))
         }
       }
 
@@ -115,6 +116,7 @@ trait Cycle {
 
   type IO[T] = InOut[T, T]
 
+  /*
   def onMount[El <: Element]: IO[MountContext[El]] with SubscribeOnMount[El] = {
     val bus = new EventBus[MountContext[El]]
     new IO[MountContext[El]] with SubscribeOnMount[El] {
@@ -128,6 +130,7 @@ trait Cycle {
       }
     }
   }
+   */
 
   def amend[El <: Element](mods: Mod[El]*): Mod[El] = inContext[El](el => el.amend(mods: _*))
 
