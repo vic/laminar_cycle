@@ -44,7 +44,7 @@ object drivers extends Module {
   object all extends Driver {
     override def artifactName = "all-drivers"
     override def moduleDeps   = super.moduleDeps ++ Seq(
-      fetch, zio, topic
+      fetch, zio, topic, combine
     )
   }
 
@@ -61,8 +61,8 @@ object drivers extends Module {
     override def artifactName = "topic-driver"
   }
 
-  object compose extends Driver {
-    override def artifactName = "compose-driver"
+  object combine extends Driver {
+    override def artifactName = "combine-driver"
   }
 }
 

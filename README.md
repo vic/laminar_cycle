@@ -316,10 +316,10 @@ Individual Drivers:
   A cycle driver around `fetch` for executing HTTP requests.
   
   
-* [ComposeDriver][compose-driver-javadoc] ([source][compose-driver-source])
-  > Artifact: `com.github.vic.laminar_cycle::compose-driver::VERSION`
+* [CombineDriver][combine-driver-javadoc] ([source][combine-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::combine-driver::VERSION`
 
-  A driver that can compose two other drivers by projecting their `CIO` streams.
+  A driver that can combine two other drivers by projecting their `CIO` streams.
   
 
 * [TopicDriver][topic-driver-javadoc] ([source][topic-driver-source])
@@ -383,8 +383,8 @@ Individual Drivers:
 [topic-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/topic/docJar/dest/javadoc/index.html
 [topic-driver-source]: drivers/topic/src
 
-[compose-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/compose/docJar/dest/javadoc/index.html.
-[compose-driver-source]: drivers/compose/src
+[combine-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/combine/docJar/dest/javadoc/index.html.
+[combine-driver-source]: drivers/combine/src
 
 [zio-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/zio/docJar/dest/javadoc/index.html
 [zio-driver-source]: drivers/zio/src
