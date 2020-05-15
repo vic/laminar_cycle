@@ -214,9 +214,11 @@ def counterView(state: Observable[State]): Div = {
   
 ## Drivers  
 
-Drivers are cycle's way to interpret effects.
+A [Driver][cycle-driver] is the Cycle-way to interpret effects.
+
 > All drivers artifact: `com.github.vic.laminar.cycle::all-drivers::VERSION`
 
+Available Drivers:
 * [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
   > Artifact: `com.github.vic.laminar.cycle::fetch-driver::VERSION`
 
@@ -225,6 +227,7 @@ Drivers are cycle's way to interpret effects.
 * [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
   > Artifact: `com.github.vic.laminar.cycle::zio-driver::VERSION`
 
+  - `ZIODriver.unsafeEither` runs fallible-effects into `Either[E,A]` values.
   - `ZIODriver.unsafeFuture` runs incoming effects with `runtime.unsafeRunToFuture`
   
 
