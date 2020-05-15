@@ -9,7 +9,7 @@
 
 ## Installation
 
-> Artifact: `com.github.vic.laminar.cycle::cycle::VERSION`
+> Artifact: `com.github.vic.laminar_cycle::cycle::VERSION`
 
 Each release artifacts are available from [JitPack][JitPack]
 
@@ -216,16 +216,16 @@ def counterView(state: Observable[State]): Div = {
 
 A [Driver][cycle-driver] is the Cycle-way to interpret effects.
 
-> All drivers artifact: `com.github.vic.laminar.cycle::all-drivers::VERSION`
+> All drivers artifact: `com.github.vic.laminar_cycle::all-drivers::VERSION`
 
 Available Drivers:
 * [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
-  > Artifact: `com.github.vic.laminar.cycle::fetch-driver::VERSION`
+  > Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
 
   A cycle driver around `fetch` for executing HTTP requests.
 
 * [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
-  > Artifact: `com.github.vic.laminar.cycle::zio-driver::VERSION`
+  > Artifact: `com.github.vic.laminar_cycle::zio-driver::VERSION`
 
   - `ZIODriver.unsafeEither` runs fallible-effects into `Either[E,A]` values.
   - `ZIODriver.unsafeFuture` runs incoming effects with `runtime.unsafeRunToFuture`
