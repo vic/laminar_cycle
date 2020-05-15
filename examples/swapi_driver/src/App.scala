@@ -3,52 +3,6 @@ package example.swapi_driver
 import com.raquo.laminar.api.L._
 import org.scalajs.dom
 
-import scala.concurrent.{ExecutionContext, Future}
-import SWAPIFacade.types._
-
-object SWAPI {
-
-  sealed trait Request
-  case class GetPerson(id: Int)         extends Request
-  case class FindPeople(search: String) extends Request
-
-  sealed trait Response
-  case class GotPerson(person: Person)        extends Response
-  case class FoundPeople(people: Seq[Person]) extends Response
-
-  type InOut = cycle.InOut[(Request, Response), Request]
-
-}
-
-object SWAPIDriver {
-  import SWAPI._
-  import SWAPIFacade.ops._
-
-  private def processRequest(request: Request)(implicit ec: ExecutionContext): Future[Response] =
-    request match {
-      case GetPerson(id) =>
-        getPerson(id).toFuture.map(GotPerson(_))
-      case FindPeople(search) =>
-        findPeople(search).toFuture.map(FoundPeople(_))
-    }
-
-  def apply[El <: Element](fn: SWAPI.InOut => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
-    val (io, oi) = cycle.InOut.split[Request, (Request, Response)]
-
-    val reqAndRes: EventStream[(Request, Response)] = io.in.flatMap { req =>
-      EventStream
-        .fromFuture(processRequest(req))
-        .map(res => req -> res)
-    }
-
-    cycle.amend[El](
-      reqAndRes --> io.out,
-      fn(oi)
-    )
-  }
-
-}
-
 object Example {
 
   def searchForm(current: Observable[String], search: Observer[String], submit: Observer[Unit]): Div =
