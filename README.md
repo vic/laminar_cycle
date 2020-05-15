@@ -9,6 +9,8 @@
 
 ## Installation
 
+> Artifact: `com.github.vic.laminar.cycle::cycle::VERSION`
+
 Each release artifacts are available from [JitPack][JitPack]
 
 ## Intro
@@ -213,11 +215,18 @@ def counterView(state: Observable[State]): Div = {
 ## Drivers  
 
 Drivers are cycle's way to interpret effects.
+> All drivers artifact: `com.github.vic.laminar.cycle::all-drivers::VERSION`
 
 * [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
+  > Artifact: `com.github.vic.laminar.cycle::fetch-driver::VERSION`
 
   A cycle driver around `fetch` for executing HTTP requests.
 
+* [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
+  > Artifact: `com.github.vic.laminar.cycle::zio-driver::VERSION`
+
+  - `ZIODriver.unsafeFuture` runs incoming effects with `runtime.unsafeRunToFuture`
+  
 
 ## Examples
 
@@ -262,6 +271,9 @@ Drivers are cycle's way to interpret effects.
 
 [fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/docJar/dest/javadoc/index.html
 [fetch-driver-source]: drivers/fetch/src
+
+[zio-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/zio/docJar/dest/javadoc/index.html
+[zio-driver-source]: drivers/zio/src
 
 [ZIO]: https://zio.dev/
 [@vic]: https://twitter.com/oeiuwq

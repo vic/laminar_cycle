@@ -7,7 +7,7 @@ export PATH=$HOME/bin:$PATH
 case "$*" in
 
  jitpack)
-   mill -i __.publishM2Local
+   mill -i '{cycle,drivers._}.publishM2Local'
  ;;
 
  gh-pages)
