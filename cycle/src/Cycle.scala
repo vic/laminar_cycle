@@ -9,6 +9,20 @@ trait Cycle {
   }
 
   object SubscribeOnMount {
+    def apply[El <: Element, T](in: InOut[T, _], out: InOut[_, T]): SubscribeOnMount[El] =
+      apply(_ => in.in -> out.out)
+
+    def apply[El <: Element, T](in: EventStream[T], out: WriteBus[T]): SubscribeOnMount[El] =
+      apply(_ => in -> out)
+
+    def apply[El <: Element, T](fn: MountContext[El] => (EventStream[T], WriteBus[T])): SubscribeOnMount[El] =
+      new SubscribeOnMount[El] {
+        val subscribeOnMount = onMountCallback[El] { ctx: MountContext[El] =>
+          val (in: EventStream[T], out: WriteBus[T]) = fn(ctx)
+          out.addSource(in)(ctx.owner)
+        }
+      }
+
     implicit def toModifier[El <: Element](
         sub: SubscribeOnMount[El]
     ): Modifier[El] = sub.subscribeOnMount
@@ -28,52 +42,45 @@ trait Cycle {
     def fold[X, Y, El <: Element](
         inOperator: I => X,
         outOperator: Y => O
-    ): InOut[X, Y] with SubscribeOnMount[El] =
+    ): (InOut[X, Y], SubscribeOnMount[El]) =
       composeBoth(_.map(inOperator), _.map(outOperator))
 
     def composeBoth[X, Y, El <: Element](
         inOperator: EventStream[I] => EventStream[X],
         outOperator: EventStream[Y] => EventStream[O]
-    ): InOut[X, Y] with SubscribeOnMount[El] = {
+    ): (InOut[X, Y], SubscribeOnMount[El]) = {
       val bus = new EventBus[Y]
-      new InOut[X, Y] with SubscribeOnMount[El] {
+      val io = new InOut[X, Y] {
         override val in  = self.in.compose(inOperator)
         override val out = bus.writer
-        override val subscribeOnMount: Modifier[El] = onMountCallback { ctx =>
-          implicit val owner = ctx.owner
-          self.out.contracomposeWriter(outOperator).addSource(bus.events)
-        }
       }
+      val som = SubscribeOnMount[El, Y] { ctx: MountContext[El] =>
+        bus.events -> self.out.contracomposeWriter(outOperator)(ctx.owner)
+      }
+      io -> som
     }
 
     def contramap[T, El <: Element](
         operator: T => O
-    ): InOut[I, T] with SubscribeOnMount[El] =
+    ): (InOut[I, T], SubscribeOnMount[El]) =
       contracompose(_.map(operator))
 
     def contracompose[T, El <: Element](
         operator: EventStream[T] => EventStream[O]
-    ): InOut[I, T] with SubscribeOnMount[El] = {
+    ): (InOut[I, T], SubscribeOnMount[El]) = {
       val bus = new EventBus[T]
-      new InOut[I, T] with SubscribeOnMount[El] {
+      val io = new InOut[I, T] {
         override val in  = self.in
         override val out = bus.writer
-        override val subscribeOnMount: Modifier[El] = onMountCallback { ctx =>
-          implicit val owner = ctx.owner
-          self.out.contracomposeWriter(operator).addSource(bus.events)
-        }
       }
+      val som = SubscribeOnMount[El, T] { ctx: MountContext[El] =>
+        bus.events -> self.out.contracomposeWriter(operator)(ctx.owner)
+      }
+      io -> som
     }
 
     def addOut[El <: Element](source: EventStream[O]): SubscribeOnMount[El] =
-      new SubscribeOnMount[El] {
-        override val subscribeOnMount =
-          onMountCallback { ctx =>
-            org.scalajs.dom.console
-              .log("AddOut subscribe on Mount", ctx.thisNode.ref)
-            out.addSource(source)(ctx.owner)
-          }
-      }
+      SubscribeOnMount(_ => source -> out)
   }
 
   object InOut {

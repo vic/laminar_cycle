@@ -31,7 +31,6 @@ object examples extends Module {
   }
 
   object cycle_counter extends Example
-  object nested_indent extends Example
 
 }
 
