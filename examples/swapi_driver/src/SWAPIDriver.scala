@@ -24,17 +24,17 @@ object SWAPIDriver {
   private type SenseActuator = InOut[Sense, Actuator]
 
   def apply[El <: Element](fn: ActuatorSense => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
-    val (out: ActuatorSense, in: SenseActuator) = InOut[Actuator, Sense]
+    val (senseActuator: SenseActuator, actuatorSense: ActuatorSense) = InOut[Sense, Actuator]
 
-    val reqAndRes: EventStream[(Request, Response)] = in.flatMap { req =>
+    val reqAndRes: EventStream[(Request, Response)] = senseActuator.flatMap { req =>
       EventStream
         .fromFuture(processRequest(req))
         .map(res => req -> res)
     }
 
     amend[El](
-      reqAndRes --> in,
-      fn(out)
+      reqAndRes --> senseActuator,
+      fn(actuatorSense)
     )
   }
 
