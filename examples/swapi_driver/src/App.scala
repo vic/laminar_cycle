@@ -28,7 +28,7 @@ object Example {
     )
   }
 
-  def cycled(swapi: SWAPI.InOut, text: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
+  def cycled(swapi: SWAPIDriver.ActuatorSense, text: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
     val currentSearch = text.startWith("")
 
     val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
@@ -50,10 +50,8 @@ object Example {
 
   def apply(): Div = {
     import scala.concurrent.ExecutionContext.Implicits.global
-    val textBus   = new EventBus[String]
-    val submitBus = new EventBus[Unit]
     div(
-      SWAPIDriver { swapi => cycled(swapi, textBus, submitBus) }
+      SWAPIDriver { swapi => cycled(swapi, cycle.IO[String], cycle.IO[Unit]) }
     )
   }
 }

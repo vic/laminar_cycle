@@ -1,6 +1,8 @@
 package example.swapi_driver
 
+import cycle._
 import com.raquo.laminar.api.L._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 object SWAPIDriver {
@@ -15,18 +17,24 @@ object SWAPIDriver {
         findPeople(search).toFuture.map(FoundPeople(_))
     }
 
-  def apply[El <: Element](fn: SWAPI.InOut => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
-    val (oi, io) = cycle.InOut.split[(Request, Response), Request]
+  private type Sense    = Request
+  private type Actuator = (Request, Response)
 
-    val reqAndRes: EventStream[(Request, Response)] = io.flatMap { req =>
+  type ActuatorSense         = InOut[Actuator, Sense]
+  private type SenseActuator = InOut[Sense, Actuator]
+
+  def apply[El <: Element](fn: ActuatorSense => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
+    val (out: ActuatorSense, in: SenseActuator) = InOut[Actuator, Sense]
+
+    val reqAndRes: EventStream[(Request, Response)] = in.flatMap { req =>
       EventStream
         .fromFuture(processRequest(req))
         .map(res => req -> res)
     }
 
-    cycle.amend[El](
-      reqAndRes --> io,
-      fn(oi)
+    amend[El](
+      reqAndRes --> in,
+      fn(out)
     )
   }
 

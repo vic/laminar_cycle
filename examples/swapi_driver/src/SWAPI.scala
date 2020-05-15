@@ -12,6 +12,4 @@ object SWAPI {
   case class GotPerson(person: Person)        extends Response
   case class FoundPeople(people: Seq[Person]) extends Response
 
-  type InOut = cycle.InOut[(Request, Response), Request]
-
 }

@@ -64,7 +64,7 @@ object Counter {
 }
 
 object Main extends App {
-  val state: IO[Counter.State]    = new EventBus[Counter.State]
-  val actions: IO[Counter.Action] = new EventBus[Counter.Action]
+  val state   = IO[Counter.State]
+  val actions = IO[Counter.Action]
   render(dom.document.getElementById("app"), Counter(state, actions))
 }

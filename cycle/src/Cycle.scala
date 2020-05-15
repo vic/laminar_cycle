@@ -95,7 +95,7 @@ trait Cycle {
 
   object InOut {
 
-    def split[I, O]: (InOut[I, O], InOut[O, I]) =
+    def apply[I, O]: (InOut[I, O], InOut[O, I]) =
       splitEventBus(new EventBus[I], new EventBus[O])
 
     implicit def fromEventBus[T](eventBus: EventBus[T]): IO[T] =
@@ -127,6 +127,9 @@ trait Cycle {
   }
 
   type IO[T] = InOut[T, T]
+  object IO {
+    def apply[T]: IO[T] = new EventBus[T]
+  }
 
   def amend[El <: Element](mods: Mod[El]*): Mod[El] = inContext[El](el => el.amend(mods: _*))
 
