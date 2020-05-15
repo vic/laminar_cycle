@@ -28,11 +28,11 @@ object Example {
     )
   }
 
-  def cycled(swapi: SWAPI.InOut, input: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
-    val currentInput = input.startWith("")
+  def cycled(swapi: SWAPI.InOut, text: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
+    val currentSearch = text.startWith("")
 
     val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
-      .withCurrentValueOf(currentInput)
+      .withCurrentValueOf(currentSearch)
       .map(_._2.trim)
       .filterNot(_.isEmpty)
       .map(SWAPI.FindPeople(_))
@@ -42,7 +42,7 @@ object Example {
     }.map2(renderFoundPeople)
 
     div(
-      searchForm(currentInput, input, submit),
+      searchForm(currentSearch, text, submit),
       child <-- viewSearchResults,
       findPeopleReqs --> swapi
     )
@@ -50,10 +50,10 @@ object Example {
 
   def apply(): Div = {
     import scala.concurrent.ExecutionContext.Implicits.global
-    val inputBus  = new EventBus[String]
+    val textBus   = new EventBus[String]
     val submitBus = new EventBus[Unit]
     div(
-      SWAPIDriver { swapi => cycled(swapi, inputBus, submitBus) }
+      SWAPIDriver { swapi => cycled(swapi, textBus, submitBus) }
     )
   }
 }
