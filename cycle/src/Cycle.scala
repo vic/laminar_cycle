@@ -37,6 +37,7 @@ private[cycle] trait Cycle {
     ): Mod[El] = sub.subscribeOnMount
   }
 
+  type CycleIO[I, O] = CIO[I, O]
   sealed trait CIO[I, O] { self =>
     val input: EventStream[I]
     val output: WriteBus[O]
@@ -126,7 +127,8 @@ private[cycle] trait Cycle {
 
   }
 
-  type EIO[T] = CIO[T, T]
+  type EqualIO[T] = EIO[T]
+  type EIO[T]     = CIO[T, T]
   object EIO {
     def apply[T]: EIO[T] = new EventBus[T]
   }
