@@ -209,6 +209,15 @@ def counterView(state: Observable[State]): Div = {
   )
 }
 ```
+  
+## Drivers  
+
+Drivers are cycle's way to interpret effects.
+
+* [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
+
+  A cycle driver around `fetch` for executing HTTP requests.
+
 
 ## Examples
 
@@ -227,13 +236,6 @@ def counterView(state: Observable[State]): Div = {
   
   The SWAPIDriver makes http requests to a the [SWAPI] database via REST.
   
-  
-## Drivers  
-
-* [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
-
-  A cycle driver around `fetch`
-
 
 [JitPack]: https://jitpack.io/#vic/laminar_cycle
 [Cycle]: https://cycle.js.org/
