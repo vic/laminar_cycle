@@ -1,1 +1,1 @@
-package object cycle extends cycle.Cycle
+package object cycle extends cycle.internal.Cycle

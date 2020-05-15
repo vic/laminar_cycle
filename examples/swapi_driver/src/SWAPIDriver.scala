@@ -20,11 +20,11 @@ object SWAPIDriver {
   private type Sense    = Request
   private type Actuator = (Request, Response)
 
-  type ActuatorSense         = InOut[Actuator, Sense]
-  private type SenseActuator = InOut[Sense, Actuator]
+  type ActuatorSense         = CIO[Actuator, Sense]
+  private type SenseActuator = CIO[Sense, Actuator]
 
   def apply[El <: Element](fn: ActuatorSense => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
-    val (senseActuator: SenseActuator, actuatorSense: ActuatorSense) = InOut[Sense, Actuator]
+    val (senseActuator: SenseActuator, actuatorSense: ActuatorSense) = CIO[Sense, Actuator]
 
     val reqAndRes: EventStream[(Request, Response)] = senseActuator.flatMap { req =>
       EventStream

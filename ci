@@ -7,14 +7,16 @@ export PATH=$HOME/bin:$PATH
 case "$*" in
 
  jitpack)
-   mill -i _.publishM2Local
+   mill -i __.publishM2Local
  ;;
 
  gh-pages)
-   mill -i examples._.fastOpt
+   mill -i __.{docJar,fastOpt}
+   find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
    mkdir -p gh-pages
    cp -rf README.md examples/ gh-pages/
-   find out/ -iname "out.*" | cpio -p -dumv gh-pages/
+   find out/ -path '*fastOpt/dest/out*' | cpio -p -dumv gh-pages/
+   find out/ -path '*docJar/dest/javadoc/*' | cpio -p -dumv gh-pages/
  ;;
 
  scalafmt)

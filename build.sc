@@ -9,30 +9,49 @@ trait BaseModule extends ScalaJSModule {
   )
 }
 
-object cycle extends BaseModule with PublishModule {
-  def artifactName   = "laminar-cycle"
-  def publishVersion = os.read(os.pwd / "VERSION").trim
-  def pomSettings = PomSettings(
-    description = "Helpers for Cycle style apps using Laminar",
-    organization = "io.github.vic",
-    url = "https://github.com/vic/laminar.cycle",
-    licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("vic", "laminar.cycle"),
-    developers = Seq(
-      Developer("vic", "Victor Borja", "https://github.com/vic")
+trait BasePublish extends Module {
+  def publishVersion = T { os.read(os.pwd / "VERSION").trim }
+  def pomSettings = T {
+    PomSettings(
+      description = "Helpers for Cycle style apps using Laminar",
+      organization = "io.github.vic",
+      url = "https://github.com/vic/laminar.cycle",
+      licenses = Seq(License.`Apache-2.0`),
+      versionControl = VersionControl.github("vic", "laminar.cycle"),
+      developers = Seq(
+        Developer("vic", "Victor Borja", "https://github.com/vic")
+      )
     )
-  )
+  }
+}
+
+trait NeedsCycle extends ScalaJSModule {
+  override def moduleDeps = super.moduleDeps :+ cycle
+}
+
+object cycle extends BaseModule with BasePublish {
+  override def artifactName   = "laminar-cycle"
+}
+
+object drivers extends Module {
+  trait Driver extends BaseModule with NeedsCycle with BasePublish
+
+  object all extends Driver {
+    override def artifactName = "laminar-cycle-all-drivers"
+    override def moduleDeps = super.moduleDeps ++ Seq(fetch)
+  }
+
+  object fetch extends Driver {
+    override def artifactName = "laminar-cycle-fetch-driver"
+  }
 }
 
 object examples extends Module {
 
-  trait Example extends BaseModule {
-    override def moduleDeps = Seq(cycle)
-  }
+  trait Example extends BaseModule with NeedsCycle
 
   object cycle_counter extends Example
   object swapi_driver extends Example
 
 }
 
-object pages extends Module {}

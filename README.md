@@ -7,7 +7,6 @@
 
 [Cycle] style apps using [Laminar] on [ScalaJS]
 
-
 ## Installation
 
 Each release artifacts are available from [JitPack][JitPack]
@@ -16,8 +15,10 @@ Each release artifacts are available from [JitPack][JitPack]
 
 [Laminar] is an awesome tool for creating [Functional Reactive][FRP] interfaces enterely based on [Streams][Airstream].
 
-This repository offers a [tiny library][laminar-cycle] built on Laminar that can help you
+This repository offers a [tiny library][laminar-cycle-source] built on Laminar that can help you
 build applications using [Cycle's dialogue abstraction][cycle-dialogue].
+
+[cycle API][laminar-cycle-javadoc]
 
 ### Senses and Actuators
 
@@ -49,7 +50,10 @@ function computer(senses) {
 Since Laminar is already powerful enough to efficiently create and render stream-based reactive html elements,
 all we need now is a function to model the previously seen cycle dialogue abstraction.
 
-#### The `cycle.InOut[I, O]` type models senses and actuators.
+#### CycleIO
+
+The type `CIO[I, O]` stands for `CycleIO` and models senses of type `I` and actuators of type `O`.
+> And yes, it's also a nod to the [ZIO] data type ;D -- [@vic]
 
 As an example of _Senses_ and _Actuators_, suppose you need to interact with
 some external API by sending it `Request`s and receiving `Response`es from it.
@@ -71,20 +75,17 @@ stimuli (`Response`) from the API but also might produce stimuli for it (`Reques
 import com.raquo.laminar.api.L._
 import ExternalAPI.{Request, Response}
 
-def computer(api: cycle.InOut[Response, Request]) = {
-  // api.in  has type EventStream[Response]
-  // api.out has type WriteBus[Request]
-
+def computer(api: cycle.CIO[Response, Request]) = {
   // define the behavior of `actuators` somehow
 }
 ```
 
-The `cycle.InOut[Sense, Actuator]` type is defined something like:
+The `cycle.CIO[Sense, Actuator]` type is defined something like:
 
 ```scala
-trait InOut[I, O] {
-  val in:  EventStream[I]
-  val out: WriteBus[O]
+trait CIO[I, O] {
+  val input:  EventStream[I]
+  val output: WriteBus[O]
 }
 ```
 
@@ -119,7 +120,7 @@ Having the above types, we could define our `computer` function like:
 ```scala
 import Counter._
 
-def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Mod[Element] = {
+def computer(states: cycle.SIO[State], actions: cycle.SIO[Action]): Mod[Element] = {
   // Initialize the computer's internal state and keep it on a Signal[State]
   // in order to always have a *current value*
   val stateSignal: Signal[State] = states.startWith(State(0, 0))
@@ -141,10 +142,13 @@ def performAction(action: Action, state: State): State = action match {
 
 Let's explore our previous example code.
 
-* The `cycle.IO[T]` type is just an alias for `cycle.InOut[T, T]`. 
+* The `cycle.SIO[T]` type is just an alias for `cycle.CIO[T, T]`. 
 
-  Perhaps @vic should rename it since `IO` is already used in other functional contexts, 
-if you can find out a better name, be sure to share it via an [issue](issues).
+  SIO stands for SameIO, meaning that both, senses and actuators have the same type `T`.
+  > Oops, I did it again. :D -- [@vic]
+  
+  It's equivalent to [Airstream]'s `EventBus[T]`
+
 
 * Our previous example does not render anything (we will get to producing views later).
 
@@ -153,10 +157,10 @@ if you can find out a better name, be sure to share it via an [issue](issues).
 
 * The return type is `Mod[Element]`. 
 
-  The `updatedState --> states` produces an `Mod[El]` modifier 
-  that manages the events subscription. 
+  The `updatedState --> states` produces Laminar modifier that manages the event subscriptions. 
   
-  Read more about modifiers and subscription ownership at [LaminarDocs]).
+  Read more about modifiers and subscription ownership at [LaminarDocs].
+  
   All of this is part of Laminar's [memory safety and glitch free guarantees][LaminarSafety].
 
 
@@ -167,7 +171,7 @@ Now, we will refactor our `computer` function to actually render a user interfac
 For brevity sake, we will add `???` for previously seen code.
 
 ```scala
-def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Div = {
+def computer(states: cycle.SIO[State], actions: cycle.SIO[Action]): Div = {
   val stateSignal: Signal[State] = ???
   val updatedState: EventStream[State] = ???
  
@@ -222,6 +226,13 @@ def counterView(state: Observable[State]): Div = {
   Shows how a [Cycle driver][cycle-driver] looks like with Laminar.
   
   The SWAPIDriver makes http requests to a the [SWAPI] database via REST.
+  
+  
+## Drivers  
+
+* [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
+
+  A cycle driver around `fetch`
 
 
 [JitPack]: https://jitpack.io/#vic/laminar_cycle
@@ -244,4 +255,11 @@ def counterView(state: Observable[State]): Div = {
 [SWAPIDriver]: https://vic.github.io/laminar_cycle/examples/swapi_driver/src/index.html
 [swapi-driver-source]: examples/swapi_driver/src
 
-[laminar-cycle]: cycle/src/Cycle.scala
+[laminar-cycle-javadoc]: https://vic.github.io/laminar_cycle/out/cycle/docJar/dest/javadoc/index.html
+[laminar-cycle-source]: cycle/src/Cycle.scala
+
+[fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/docJar/dest/javadoc/index.html
+[fetch-driver-source]: drivers/fetch/src
+
+[ZIO]: https://zio.dev/
+[@vic]: https://twitter.com/oeiuwq

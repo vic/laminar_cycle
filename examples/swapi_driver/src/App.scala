@@ -3,6 +3,8 @@ package example.swapi_driver
 import com.raquo.laminar.api.L._
 import org.scalajs.dom
 
+import cycle._
+
 object Example {
 
   def searchForm(current: Observable[String], search: Observer[String], submit: Observer[Unit]): Div =
@@ -28,7 +30,7 @@ object Example {
     )
   }
 
-  def cycled(swapi: SWAPIDriver.ActuatorSense, text: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
+  def cycled(swapi: SWAPIDriver.ActuatorSense, text: SIO[String], submit: SIO[Unit]): Mod[Element] = {
     val currentSearch = text.startWith("")
 
     val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
@@ -51,7 +53,7 @@ object Example {
   def apply(): Div = {
     import scala.concurrent.ExecutionContext.Implicits.global
     div(
-      SWAPIDriver { swapi => cycled(swapi, cycle.IO[String], cycle.IO[Unit]) }
+      SWAPIDriver { swapi => cycled(swapi, SIO[String], SIO[Unit]) }
     )
   }
 }
