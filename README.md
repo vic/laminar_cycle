@@ -125,7 +125,7 @@ def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Mod[Element] =
   val updatedState: EventStream[State] = 
      actions.in.withCurrentValueOf(stateSignal).map(Function.tupled(performAction))
  
-  states.addOut[Element](updatedState)
+  updatedState --> states
 }
 
 def performAction(action: Action, state: State): State = action match {
@@ -150,12 +150,11 @@ if you can find out a better name, be sure to share it via an [issue](issues).
 
 * The return type is `Mod[Element]`. 
 
-  The `states.addOut(updateState)` produces an `cycle.SubscribeOnMount[El]` modifier 
-  (read more about `Mod[El]` modifiers and ownership at [LaminarDocs]).
+  The `updatedState --> states` produces an `Mod[El]` modifier 
+  that manages the events subscription. 
   
-  The `SubscribeOnMount[El]` modifier will make sure that we write updated states
-  for as long as the UI is mounted and the user can interact with it. All of this
-  is part of Laminar's [memory safety and glitch free guarantees][LaminarSafety].
+  Read more about modifiers and subscription ownership at [LaminarDocs]).
+  All of this is part of Laminar's [memory safety and glitch free guarantees][LaminarSafety].
 
 
 #### Producing reactive views
@@ -172,7 +171,7 @@ def computer(states: cycle.IO[State], actions: cycle.IO[Action]): Div = {
   div(
     counterView(stateSignal),
     actionControls(actions.out),
-    state.addOut[Div](updatedState)
+    updatedState --> state
   )
 }
 

@@ -60,7 +60,7 @@ object Counter {
     div(
       counterView(currentState),
       actionControls(actions.out),
-      state.addOut[Div](updatedState)
+      updatedState --> state
     )
   }
 

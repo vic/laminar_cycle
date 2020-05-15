@@ -91,9 +91,6 @@ trait Cycle {
       }
       io -> som
     }
-
-    def addOut[El <: Element](source: EventStream[O]): SubscribeOnMount[El] =
-      SubscribeOnMount(_ => source -> out)
   }
 
   object InOut {
@@ -104,7 +101,7 @@ trait Cycle {
         override val out = eventBus.writer
       }
 
-    implicit def toEventBus[T](io: IO[T]): EventBus[T] = new EventBus[T] {
+    def toEventBus[T](io: IO[T]): EventBus[T] = new EventBus[T] {
       override val events = io.in
       override val writer = io.out
     }
