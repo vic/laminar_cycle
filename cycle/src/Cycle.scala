@@ -101,6 +101,18 @@ trait Cycle {
         override val out = eventBus.writer
       }
 
+    def splitEventBus[I, O](iBus: EventBus[I], oBus: EventBus[O]): (InOut[I, O], InOut[O, I]) = {
+      val io = new InOut[I, O] {
+        override val in  = iBus.events
+        override val out = oBus.writer
+      }
+      val oi = new InOut[O, I] {
+        override val in  = oBus.events
+        override val out = iBus.writer
+      }
+      io -> oi
+    }
+
     def toEventBus[T](io: IO[T]): EventBus[T] = new EventBus[T] {
       override val events = io.in
       override val writer = io.out
