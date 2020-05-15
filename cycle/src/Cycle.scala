@@ -9,7 +9,15 @@ trait Cycle {
   }
 
   object SubscribeOnMount {
-    def apply[El <: Element, T](in: InOut[T, _], out: InOut[_, T]): SubscribeOnMount[El] =
+    def cycle[El <: Element, I, O](a: InOut[I, O], b: InOut[O, I]): SubscribeOnMount[El] = {
+      val aSub = inOut[El, I](a, b)
+      val bSub = inOut[El, O](b, a)
+      new SubscribeOnMount[El] {
+        override val subscribeOnMount: Modifier[El] = amend[El](aSub, bSub)
+      }
+    }
+
+    def inOut[El <: Element, T](in: InOut[T, _], out: InOut[_, T]): SubscribeOnMount[El] =
       apply(_ => in.in -> out.out)
 
     def apply[El <: Element, T](in: EventStream[T], out: WriteBus[T]): SubscribeOnMount[El] =
@@ -31,6 +39,10 @@ trait Cycle {
   trait InOut[I, O] { self =>
     val in: EventStream[I]
     val out: WriteBus[O]
+
+    def cycle[El <: Element](inverse: InOut[O, I]): SubscribeOnMount[El] = {
+      SubscribeOnMount.cycle[El, I, O](self, inverse)
+    }
 
     def map[T](operator: I => T): InOut[T, O] = compose(_.map(operator))
     def compose[T](operator: EventStream[I] => EventStream[T]): InOut[T, O] =
