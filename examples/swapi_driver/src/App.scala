@@ -5,7 +5,6 @@ import org.scalajs.dom
 
 import scala.concurrent.{ExecutionContext, Future}
 import SWAPIFacade.types._
-import example.swapi_driver.SWAPI.{FindPeople, FoundPeople}
 
 object SWAPI {
 
@@ -25,7 +24,7 @@ object SWAPIDriver {
   import SWAPI._
   import SWAPIFacade.ops._
 
-  def processRequest(request: Request)(implicit ec: ExecutionContext): Future[Response] =
+  private def processRequest(request: Request)(implicit ec: ExecutionContext): Future[Response] =
     request match {
       case GetPerson(id) =>
         getPerson(id).toFuture.map(GotPerson(_))
@@ -75,13 +74,10 @@ object Example {
     )
   }
 
-  def cycled(swapi: SWAPI.InOut): Mod[Element] = {
-    val inputBus  = new EventBus[String]
-    val submitBus = new EventBus[Unit]
+  def cycled(swapi: SWAPI.InOut, input: cycle.IO[String], submit: cycle.IO[Unit]): Mod[Element] = {
+    val currentInput = input.in.startWith("")
 
-    val currentInput = inputBus.events.startWith("")
-
-    val findPeopleReqs: EventStream[SWAPI.FindPeople] = submitBus.events
+    val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit.in
       .withCurrentValueOf(currentInput)
       .map(_._2.trim)
       .filterNot(_.isEmpty)
@@ -93,7 +89,7 @@ object Example {
 
     div(
       cls := "app",
-      searchForm(currentInput, inputBus.writer, submitBus.writer),
+      searchForm(currentInput, input.out, submit.out),
       child <-- viewSearchResults,
       findPeopleReqs --> swapi
     )
@@ -101,8 +97,10 @@ object Example {
 
   def apply(): Div = {
     import scala.concurrent.ExecutionContext.Implicits.global
+    val inputBus  = new EventBus[String]
+    val submitBus = new EventBus[Unit]
     div(
-      SWAPIDriver { swapi => cycled(swapi) }
+      SWAPIDriver { swapi => cycled(swapi, inputBus, submitBus) }
     )
   }
 }
