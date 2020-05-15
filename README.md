@@ -206,7 +206,6 @@ def counterView(state: Observable[State]): Div = {
 ## Examples
 
 * [Counter] ([source][counter-source])
-* [NestedIndent] ([source][nested-indent-source])
 
 
 
@@ -224,7 +223,5 @@ def counterView(state: Observable[State]): Div = {
 
 [Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/src/index.html
 [counter-source]: examples/cycle_counter/src
-[NestedIndent]: https://vic.github.io/laminar_cycle/examples/nested_indent/src/index.html
-[nested-indent-source]: examples/nested_indent/src
 
 [laminar-cycle]: cycle/src/Cycle.scala
