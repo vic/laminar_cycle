@@ -43,7 +43,9 @@ object drivers extends Module {
 
   object all extends Driver {
     override def artifactName = "all-drivers"
-    override def moduleDeps   = super.moduleDeps ++ Seq(fetch, zio)
+    override def moduleDeps   = super.moduleDeps ++ Seq(
+      fetch, zio, topic
+    )
   }
 
   object fetch extends Driver {
@@ -53,6 +55,10 @@ object drivers extends Module {
   object zio extends Driver {
     override def artifactName = "zio-driver"
     override def ivyDeps      = super.ivyDeps() ++ Agg(ivy"dev.zio::zio-streams:${meta.zioVersion}")
+  }
+
+  object topic extends Driver {
+    override def artifactName = "topic-driver"
   }
 }
 

@@ -216,10 +216,18 @@ A [Driver][cycle-driver] is the Cycle-way to interpret effects.
 > All drivers artifact: `com.github.vic.laminar_cycle::all-drivers::VERSION`
 
 Available Drivers:
+
 * [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
 
   A cycle driver around `fetch` for executing HTTP requests.
+  
+* [Topic][topic-driver-javadoc] ([source][topic-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::topic-driver::VERSION`
+
+  This driver can be used by Cyclic functions to pub/sub on a given topic.
+  This way components can send and response messages between them.
+
 
 * [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::zio-driver::VERSION`
@@ -271,6 +279,9 @@ Available Drivers:
 
 [fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/docJar/dest/javadoc/index.html
 [fetch-driver-source]: drivers/fetch/src
+
+[loopback-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/loopback/docJar/dest/javadoc/index.html
+[loopback-driver-source]: drivers/loopback/src
 
 [zio-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/zio/docJar/dest/javadoc/index.html
 [zio-driver-source]: drivers/zio/src
