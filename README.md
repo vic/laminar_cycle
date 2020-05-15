@@ -77,12 +77,12 @@ stimuli (`Response`) from the API but also might produce stimuli for it (`Reques
 import com.raquo.laminar.api.L._
 import ExternalAPI.{Request, Response}
 
-def computer(api: cycle.CIO[Response, Request]) = {
+def computer(api: CIO[Response, Request]) = {
   // define the behavior of `actuators` somehow
 }
 ```
 
-The `cycle.CIO[Sense, Actuator]` type is defined something like:
+The `CIO[Sense, Actuator]` type is defined something like:
 
 ```scala
 trait CIO[I, O] {
@@ -122,7 +122,7 @@ Having the above types, we could define our `computer` function like:
 ```scala
 import Counter._
 
-def computer(states: cycle.EIO[State], actions: cycle.EIO[Action]): Mod[Element] = {
+def computer(states: EIO[State], actions: EIO[Action]): Mod[Element] = {
   // Initialize the computer's internal state and keep it on a Signal[State]
   // in order to always have a *current value*
   val stateSignal: Signal[State] = states.startWith(State(0, 0))
@@ -144,7 +144,7 @@ def performAction(action: Action, state: State): State = action match {
 
 Let's explore our previous example code.
 
-* The `cycle.EIO[E]` type is just an alias for `cycle.CIO[E, E]`. 
+* The `EIO[E]` type is just an alias for `CIO[E, E]`. 
 
   EIO stands for EqualIO, meaning that both, senses and actuators have the same type `E`.
   It's equivalent to [Airstream]'s `EventBus[E]`
@@ -170,7 +170,7 @@ Now, we will refactor our `computer` function to actually render a user interfac
 For brevity sake, we will add `???` for previously seen code.
 
 ```scala
-def computer(states: cycle.EIO[State], actions: cycle.EIO[Action]): Div = {
+def computer(states: EIO[State], actions: EIO[Action]): Div = {
   val stateSignal: Signal[State] = ???
   val updatedState: EventStream[State] = ???
  
@@ -211,11 +211,101 @@ def counterView(state: Observable[State]): Div = {
   
 ## Drivers  
 
-A [Driver][cycle-driver] is the Cycle-way to interpret effects.
+A [Driver][cycle-driver] is the Cycle-way to interpret effects and
+interact with the outside world.
+
+
+In Laminar, Drivers normally look like:
+
+```scala
+object FooDriver {
+ 
+  // The Config type can be whatever context your driver needs
+  // in order to work properly. Some drivers need no config at all.
+  case class Config(debug: Boolean = false)
+
+  // The type of all possible inputs to this driver.
+  sealed trait Sense
+  case object Foo extends Sense
+  case object Moo extends Sense
+ 
+  // The type of all possible outputs of this driver.
+  sealed trait Actuator
+  case object Bar extends Actuator
+  case object Baz extends Actuator
+
+  // This type normally specifies the input and output types
+  // from the PERSPECTIVE of the User. 
+  // That is, the user receives on the Actuator channel and produces on the Sense channel
+  type ActuatorSense = CIO[Actuator, Sense]
+
+  // User is a function that takes this driver's CIO[Actuator,Sense]
+  // and produces a Mod[Element] (eg a rendered element or subscription binders)
+  type User = ActuatorSense => Mod[Element]
+
+  // This is the driver constructor, you can name this function whatever you like
+  // and have several of them. If you have a config object, curry it. Also if you
+  // need implicit arguments for your driver to work, add them.
+  def apply(config: Config)(user: User): Mod[Element] = {
+  
+    // Here we create cycled streams.
+    // Note that `io` corresponds to the `CIO[I, O]` as seen from the Driver perspective
+    // and that `oi` corresponds to `CIO[O, I]` as seen from the User's perspective.
+    val (io: CIO[Sense, Actuator], oi: CIO[Actuator, Sense]) = CIO[Sense, Actuator]
+
+    val actuators: EventStream[Actuator] = io.flatMap { sense =>
+       // Produce a new Actuator stream as the result of withnessing a Sense
+       EventStream.fromValue(perform(sense), emitOnce = true)
+    }
+  
+    cycle.amend(
+       actuators --> oi, // Send all produced Actuators to the input port of `oi`
+       user(oi) // Call the user function, providing this driver's `oi`
+    )
+  }
+ 
+  // Upon withnesing a Sense, the actor produces an Actuator
+  private def perform(sense: Sense): Actuator = sense match {
+    case Foo => Bar
+    case Moo => Baz
+  }
+
+}
+```
+
+Drivers are used in the following way:
+
+```scala
+import FooDriver._
+val ui = div(
+  FooDriver(config = Config) { foo: CIO[Actuator, Sense] =>
+    val receivedResponse: EventStream[String] = foo.input.map { 
+      case Bar => "You pressed Foo"
+      case Baz => "You pressed Moo"
+    }
+
+    val lastResponse: Signal[String] = receivedResponse.startWith("Nothing yet, click the button!")
+
+    div(
+       child <-- lastResponse,
+       button(
+         "Produce Foo request for driver",
+         onClick.mapTo(Foo) --> foo.output
+       ),
+       button(
+         "Produce Moo request for driver",
+         onClick.mapTo(Moo) --> foo.output
+       )
+     ) 
+  }
+)
+```
+
+### Available Drivers
 
 > All drivers artifact: `com.github.vic.laminar_cycle::all-drivers::VERSION`
 
-Available Drivers:
+Individual Drivers:
 
 * [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
