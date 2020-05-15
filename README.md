@@ -259,7 +259,7 @@ object FooDriver {
     }
   
     cycle.amend(
-       actuators --> oi, // Send all produced Actuators to the input port of `oi`
+       actuators --> oi.input, // Send all produced Actuators to the input port of `oi`
        user(oi) // Call the user function, providing this driver's `oi`
     )
   }
@@ -300,6 +300,9 @@ val ui = div(
   }
 )
 ```
+
+Of course not all drivers are like this, some could provide many `CIO`'s to the `User` function,
+some could yield only `EventStream[Actuator]` or only `WriteBus[Sense]` to the `User` function.
 
 ### Available Drivers
 
