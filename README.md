@@ -280,8 +280,8 @@ Available Drivers:
 [fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/docJar/dest/javadoc/index.html
 [fetch-driver-source]: drivers/fetch/src
 
-[loopback-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/loopback/docJar/dest/javadoc/index.html
-[loopback-driver-source]: drivers/loopback/src
+[topic-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/topic/docJar/dest/javadoc/index.html
+[topic-driver-source]: drivers/topic/src
 
 [zio-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/zio/docJar/dest/javadoc/index.html
 [zio-driver-source]: drivers/zio/src
