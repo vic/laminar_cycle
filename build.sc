@@ -46,6 +46,20 @@ object drivers extends Module {
     override def moduleDeps   = super.moduleDeps ++ Seq(
       fetch, zio, topic, combine
     )
+
+    def mdocProperties = T {
+      val cp = (
+        runClasspath()
+      ).map(_.path.toString).mkString(":")
+      val jsc = scalacPluginClasspath().map(_.path.toString).find(_.contains("scalajs-compiler")).get
+      val mdoc =
+        s"""
+          |js-classpath=${cp}
+          |js-scalac-options=-Xplugin:${jsc}
+          |""".stripMargin.trim
+      os.makeDir.all(T.ctx().dest)
+      os.write(T.ctx().dest / "mdoc.properties", mdoc)
+    }
   }
 
   object fetch extends Driver {

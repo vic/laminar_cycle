@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ex -o pipefail
+set -e -o pipefail
 
 mkdir -p $HOME/bin
 export PATH=$HOME/bin:$PATH
@@ -31,6 +31,11 @@ case "$1" in
    $0 cs launch scalafmt -- --mode diff --diff-branch master "${@:2}"
  ;;
 
+ mdoc-gen)
+   $0 mill drivers.all.mdocProperties
+   $0 mdoc-js -i docs/doc1.md -o docs/doc2.md
+ ;;
+
  mdoc)
    $0 mdoc- "" "${@:2}"
  ;;
@@ -40,11 +45,7 @@ case "$1" in
  ;;
 
  mdoc-)
-   $0 cs launch org.scalameta:mdoc${2}_2.12:2.2.0 -- "${@:3}"
- ;;
-
- docu)
-   (cd website && npm start)
+   $0 cs launch org.scalameta:mdoc${2}_2.12:2.2.0 --extra-jars out/drivers/all/mdocProperties/dest/ -- "${@:3}"
  ;;
 
  mill)
