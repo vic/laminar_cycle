@@ -7,3 +7,5 @@ out/
 mill
 cs
 gh-pages/
+node_modules/
+.DS*
