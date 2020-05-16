@@ -31,7 +31,7 @@ In the [Cycle's dialogue abstraction][cycle-dialogue] pictured above,
 both the _Human_ and the _Computer_ can be seen as entities interacting with each
 other by means of `Senses` to `Actuators`. 
 
-`Senses` and `Actuators` can be seen as streams of **incoming** and **outgoing** stimuli
+`Senses` and `Actuators` can be seen as streams of **incoming** and **outgoing** stimulus
 that will cause some effect in the other-end actor. 
 This way, the Computer _reacts_ to user interactions (like clicks) by *producing* an updated interface,
 and the User _reacts_ to the interface on screen they *see* by *operating* on it (clicking again).
@@ -71,7 +71,7 @@ object ExternalAPI {
 ```
 
 In the following code snippet, we have a `computer` function that can take
-stimuli (`Response`) from the API but also might produce stimuli for it (`Request`).
+stimulus (`Response`) from the API but also might produce stimulus for it (`Request`).
 
 ```scala
 import com.raquo.laminar.api.L._
@@ -110,7 +110,7 @@ object Counter {
     numberOfInteractions: Int
   )
   
-  sealed trait Action // Type of the stimuli produced by the user
+  sealed trait Action // Type of the stimulus produced by the user
   case object Increment extends Action
   case object Decrement extends Action
 

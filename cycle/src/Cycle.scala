@@ -5,6 +5,10 @@ import com.raquo.laminar.nodes.ReactiveElement
 
 private[cycle] trait Cycle {
 
+  type ModEl        = Mod[Element]
+  type User[IO, M]  = IO => M
+  type Cycle[IO, M] = User[IO, M] => M
+
   sealed trait SubscribeOnMount[El <: Element] {
     val subscribeOnMount: Mod[El]
   }
