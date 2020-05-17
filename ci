@@ -10,6 +10,10 @@ case "$1" in
    $0 mill -i __.publishM2Local
  ;;
 
+ serve)
+   python -m SimpleHTTPServer
+ ;;
+
  gh-pages)
    $0 mill -i '{cycle.docJar,drivers._.docJar,examples._.fastOpt}'
    find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
