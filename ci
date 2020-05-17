@@ -18,10 +18,10 @@ case "$1" in
    $0 mill '{cycle.docJar,drivers._.docJar,examples._.fastOpt}'
    find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
    mkdir -p gh-pages
-   touch gh-pages/.nojekill
-   cp -rf docs/index* docs/404* README.md docs/ examples/ gh-pages/
-   find out/ -path '*fastOpt/dest/out*' | cpio -p -dum gh-pages/
-   find out/ -path '*docJar/dest/javadoc/*' | cpio -p -dum gh-pages/
+   cp -rfv docs/index* docs/404* README.md docs/ examples/ gh-pages/
+   find out/ -path '*fastOpt/dest/out*' | cpio -p -dumv gh-pages/
+   find out/ -path '*docJar/dest/javadoc/*' | cpio -p -dumv gh-pages/
+   find gh-pages/docs -type d -exec touch {}/.nojekill \;
  ;;
 
  cs)
