@@ -57,8 +57,8 @@ all we need now is a function to model the previously seen cycle dialogue abstra
 The type `CIO[I, O]` stands for `CycleIO` and models inputs of type `I` and outputs of type `O`.
 > And yes, it's also a nod to the [ZIO] data type ;D -- [@vic]
 
-As an example of _Inputs_ and _Outputs, suppose you need to interact with
-some external API by sending it `Request`s and receiving `Response`es from it.
+As an example of _Inputs_ and _Outputs_, suppose you need to interact with
+some external API by sending it `Request`s and receiving `Response`s from it.
 
 Note: once you finish reading this guide, you might want to look at the [SWAPIDriver][swapi-driver-source]
 example to see how to implement a [Cycle driver][cycle-driver] in Laminar.
