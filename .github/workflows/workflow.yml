@@ -36,14 +36,12 @@ jobs:
         run:  ./ci test
 
   jitpack-commit:
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: JitPack commit build
         run: curl -vSL https://jitpack.io/com/github/$GITHUB_REPOSITORY/$GITHUB_SHA/build.log || true
 
   jitpack-release:
-    needs: test
     runs-on: ubuntu-latest
     if: contains(github.ref, 'tags')
     steps:
@@ -52,7 +50,6 @@ jobs:
           curl -vSL https://jitpack.io/com/github/$GITHUB_REPOSITORY/$(echo "${{github.ref}}" | sed 's#tags/##')/build.log || true
 
   gh-pages:
-    needs: test
     runs-on: ubuntu-latest
     if: contains(github.ref, 'master')
     steps:
