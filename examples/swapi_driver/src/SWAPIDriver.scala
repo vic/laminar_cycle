@@ -17,24 +17,26 @@ object SWAPIDriver {
         findPeople(search).toFuture.map(FoundPeople(_))
     }
 
-  private type Sense    = Request
-  private type Actuator = (Request, Response)
+  private type Input  = Request
+  private type Output = (Request, Response)
 
-  type ActuatorSense         = CIO[Actuator, Sense]
-  private type SenseActuator = CIO[Sense, Actuator]
+  type UserIO = CIO[Output, Input]
 
-  def apply[El <: Element](fn: ActuatorSense => Mod[El])(implicit ec: ExecutionContext): Mod[El] = {
-    val (senseActuator: SenseActuator, actuatorSense: ActuatorSense) = CIO[Sense, Actuator]
+  def apply(user: User[UserIO, ModEl])(implicit ec: ExecutionContext): ModEl =
+    driver(ec)(user) // Just swap the implicit parameters to make compiler happy
 
-    val reqAndRes: EventStream[(Request, Response)] = senseActuator.flatMap { req =>
+  def driver(implicit ec: ExecutionContext): Cycle[UserIO, ModEl] = { user =>
+    val pio = PIO[Input, Output]
+
+    val reqAndRes: EventStream[Output] = pio.flatMap { req =>
       EventStream
         .fromFuture(processRequest(req))
         .map(res => req -> res)
     }
 
-    amend[El](
-      reqAndRes --> senseActuator,
-      fn(actuatorSense)
+    amend(
+      reqAndRes --> pio,
+      user(pio)
     )
   }
 

@@ -1,43 +1,38 @@
 package cycle
 
 import com.raquo.laminar.api.L._
-import zio.{ZIO, Runtime, CanFail}
+import izumi.reflect.Tag
+import zio.{CanFail, Runtime, ZIO}
 
 object ZIODriver {
 
-  private type Sense[-R, +E, +A] = ZIO[R, E, A]
-
-  type EitherActuatorSense[R, E, A] = CIO[Either[E, A], Sense[R, E, A]]
-
-  def unsafeEither[R, E: CanFail, A](
+  def unsafeEither[R: Tag, E: CanFail: Tag, A: Tag](
       runtime: Runtime[R]
-  )(user: EitherActuatorSense[R, E, A] => Mod[Element]): Mod[Element] = {
-    val (io, oi) = CIO[Sense[R, E, A], Either[E, A]]
+  ): Cycle[CIO[Either[E, A], ZIO[R, E, A]], ModEl] = { user =>
+    val pio = PIO[ZIO[R, E, A], Either[E, A]]
 
-    val res: EventStream[Either[E, A]] = io.flatMap { effect: ZIO[R, E, A] =>
+    val res: EventStream[Either[E, A]] = pio.flatMap { effect: ZIO[R, E, A] =>
       EventStream.fromValue(runtime.unsafeRun(effect.either), emitOnce = true)
     }
 
     amend(
-      res --> io,
-      user(oi)
+      res --> pio,
+      user(pio)
     )
   }
 
-  type FutureActuatorSense[R, E <: Throwable, A] = CIO[A, Sense[R, E, A]]
-
-  def unsafeFuture[R, E <: Throwable, A](
+  def unsafeFuture[R: Tag, E <: Throwable: Tag, A: Tag](
       runtime: Runtime[R]
-  )(user: FutureActuatorSense[R, E, A] => Mod[Element]): Mod[Element] = {
-    val (io, oi) = CIO[Sense[R, E, A], A]
+  ): Cycle[CIO[A, ZIO[R, E, A]], ModEl] = { user =>
+    val pio = PIO[ZIO[R, E, A], A]
 
-    val res: EventStream[A] = io.flatMap { effect: ZIO[R, E, A] =>
+    val res: EventStream[A] = pio.flatMap { effect: ZIO[R, E, A] =>
       EventStream.fromFuture { runtime.unsafeRunToFuture(effect) }
     }
 
     amend(
-      res --> io,
-      user(oi)
+      res --> pio,
+      user(pio)
     )
   }
 

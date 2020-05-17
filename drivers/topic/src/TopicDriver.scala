@@ -1,31 +1,29 @@
 package cycle
 
 import com.raquo.laminar.api.L._
+import izumi.reflect.Tag
 
 object TopicDriver {
 
   // type T = Topic
   type Handler[T, I, O] = EventStream[Request[T, I, O]] => EventStream[Response[T, I, O]]
 
-  sealed trait Sense[T, I, O]
-  final case class Request[T, I, O](topic: T, payload: I)         extends Sense[T, I, O]
-  final case class Register[T, I, O](handler: Handler[T, I, O])   extends Sense[T, I, O]
-  final case class Deregister[T, I, O](handler: Handler[T, I, O]) extends Sense[T, I, O]
+  sealed trait Input[T, I, O]
+  final case class Request[T, I, O](topic: T, payload: I)         extends Input[T, I, O]
+  final case class Register[T, I, O](handler: Handler[T, I, O])   extends Input[T, I, O]
+  final case class Deregister[T, I, O](handler: Handler[T, I, O]) extends Input[T, I, O]
 
-  sealed trait Actuator[T, I, O]
-  final case class Response[T, I, O](topic: T, payload: O) extends Actuator[T, I, O]
+  final case class Response[T, I, O](topic: T, payload: O)
 
-  type ActuatorSense[T, I, O] = CIO[Actuator[T, I, O], Sense[T, I, O]]
-
-  def apply[T, I, O](user: ActuatorSense[T, I, O] => Mod[Element]): Mod[Element] = {
-    val (io, oi) = CIO[Sense[T, I, O], Actuator[T, I, O]]
+  def apply[T: Tag, I: Tag, O: Tag]: Cycle[CIO[Response[T, I, O], Input[T, I, O]], ModEl] = { user =>
+    val pio = PIO[Input[T, I, O], Response[T, I, O]]
 
     val handlers        = EIO[Set[Handler[T, I, O]]]
     val currentHandlers = handlers.startWith(Set.empty)
 
-    val registers   = io.collect { case register: Register[T, I, O]     => register }
-    val deregisters = io.collect { case deregister: Deregister[T, I, O] => deregister }
-    val requests    = io.collect { case request: Request[T, I, O]       => request }
+    val registers   = pio.collect { case register: Register[T, I, O]     => register }
+    val deregisters = pio.collect { case deregister: Deregister[T, I, O] => deregister }
+    val requests    = pio.collect { case request: Request[T, I, O]       => request }
 
     val registrations = registers.map(_.handler).withCurrentValueOf(currentHandlers).map {
       case (handler, handlers) => handlers + handler
@@ -45,10 +43,10 @@ object TopicDriver {
       }
 
     amend(
-      responses --> io,
+      responses --> pio,
       registrations --> handlers,
       deregistrations --> handlers,
-      user(oi)
+      user(pio)
     )
   }
 

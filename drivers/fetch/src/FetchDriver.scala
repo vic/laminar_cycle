@@ -9,24 +9,21 @@ object FetchDriver {
 
   final case class Request(input: RequestInfo, init: RequestInit = null)
 
-  private type Sense    = Request
-  private type Actuator = (Request, Response)
+  private type Input  = Request
+  private type Output = (Request, Response)
 
-  type ActuatorSense = CIO[Actuator, Sense]
-
-  def apply(user: ActuatorSense => Mod[Element])(implicit ec: ExecutionContext): Mod[Element] = {
-    val (io, oi) = CIO[Sense, Actuator]
-
-    val reqRes = io.flatMap { req =>
-      EventStream.fromFuture {
-        Fetch.fetch(req.input, req.init).toFuture.map(res => req -> res)
+  def apply(implicit ec: ExecutionContext): Cycle[CIO[Output, Input], ModEl] = {
+    user: User[CIO[Output, Input], ModEl] =>
+      val pio = PIO[Input, Output]
+      val reqRes = pio.flatMap { req =>
+        EventStream.fromFuture {
+          Fetch.fetch(req.input, req.init).toFuture.map(res => req -> res)
+        }
       }
-    }
-
-    amend(
-      reqRes --> io,
-      user(oi)
-    )
+      amend(
+        reqRes --> pio,
+        user(pio)
+      )
   }
 
 }

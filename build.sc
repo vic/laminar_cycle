@@ -5,7 +5,7 @@ object meta {
   val scalaJSVersion = "1.0.1"
 
   val laminarVersion = "0.9.0"
-  val zioVersion     = "1.0.0-RC18-2"
+  val zioVersion     = "1.0.0-RC19"
 
   val publishVersion = os.read(os.pwd / "VERSION").trim
   val pomSettings =
@@ -19,6 +19,12 @@ object meta {
         Developer("vic", "Victor Borja", "https://github.com/vic")
       )
     )
+
+  object deps {
+    val laminar = ivy"com.raquo::laminar::${laminarVersion}"
+    val zio = ivy"dev.zio::zio::${zioVersion}"
+    val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
+  }
 }
 
 trait BaseModule extends ScalaJSModule {
@@ -30,7 +36,7 @@ object cycle extends BaseModule with PublishModule {
   override def artifactName = "cycle"
   def publishVersion        = T { meta.publishVersion }
   def pomSettings           = T { meta.pomSettings }
-  override def ivyDeps      = super.ivyDeps() ++ Agg(ivy"com.raquo::laminar::${meta.laminarVersion}")
+  override def ivyDeps      = super.ivyDeps() ++ Agg(meta.deps.laminar, meta.deps.zio)
 }
 
 object drivers extends Module {
@@ -68,7 +74,7 @@ object drivers extends Module {
 
   object zio extends Driver {
     override def artifactName = "zio-driver"
-    override def ivyDeps      = super.ivyDeps() ++ Agg(ivy"dev.zio::zio-streams:${meta.zioVersion}")
+    override def ivyDeps      = super.ivyDeps() ++ Agg(meta.deps.zioStreams)
   }
 
   object topic extends Driver {

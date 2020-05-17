@@ -30,7 +30,7 @@ object Example {
     )
   }
 
-  def cycled(swapi: SWAPIDriver.ActuatorSense, text: EIO[String], submit: EIO[Unit]): Mod[Element] = {
+  def cycled(swapi: SWAPIDriver.UserIO, text: EIO[String], submit: EIO[Unit]): Mod[Element] = {
     val currentSearch = text.startWith("")
 
     val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
