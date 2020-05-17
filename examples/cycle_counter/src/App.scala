@@ -52,7 +52,7 @@ object Counter {
     val currentState: Signal[State] = state.startWith(initialState)
 
     val updatedState: EventStream[State] =
-      actions.withCurrentValueOf(currentState).map(Function.tupled(performAction))
+      actions.withCurrentValueOf(currentState).map2(performAction)
 
     div(
       counterView(currentState),

@@ -31,19 +31,19 @@ In the [Cycle's dialogue abstraction][cycle-dialogue] pictured above,
 both the _Human_ and the _Computer_ can be seen as entities interacting with each
 other by means of `Senses` to `Actuators`. 
 
-`Senses` and `Actuators` can be seen as streams of **incoming** and **outgoing** stimulus
-that will cause some effect in the other-end actor. 
+These *Input* and *Output* devices drive the interaction between actors.
+
 This way, the Computer _reacts_ to user interactions (like clicks) by *producing* an updated interface,
 and the User _reacts_ to the interface on screen they *see* by *operating* on it (clicking again).
 
-In [Cycle.js][Cycle], every UI component and the whole `Computer` can be seen like a function
-from senses to actuators.
+In [Cycle.js][Cycle], every component and the whole `Computer` can be seen like a function
+from input streams to output streams.
 
 ```javascript
 // Javascript
-function computer(senses) {
-  // define the behavior of `actuators` somehow
-  return actuators;
+function computer(inputDevices) {
+  // define the behavior of `outputDevices` somehow
+  return outputDevices;
 }
 ```
 
@@ -54,13 +54,13 @@ all we need now is a function to model the previously seen cycle dialogue abstra
 
 #### CycleIO
 
-The type `CIO[I, O]` stands for `CycleIO` and models senses of type `I` and actuators of type `O`.
+The type `CIO[I, O]` stands for `CycleIO` and models inputs of type `I` and outputs of type `O`.
 > And yes, it's also a nod to the [ZIO] data type ;D -- [@vic]
 
-As an example of _Senses_ and _Actuators_, suppose you need to interact with
+As an example of _Inputs_ and _Outputs, suppose you need to interact with
 some external API by sending it `Request`s and receiving `Response`es from it.
 
-Sidenote: once you finish reading this guide, you might want to look at the [SWAPIDriver][swapi-driver-source]
+Note: once you finish reading this guide, you might want to look at the [SWAPIDriver][swapi-driver-source]
 example to see how to implement a [Cycle driver][cycle-driver] in Laminar.
 
 ```scala
@@ -74,20 +74,24 @@ In the following code snippet, we have a `computer` function that can take
 stimulus (`Response`) from the API but also might produce stimulus for it (`Request`).
 
 ```scala
+import cycle._
 import com.raquo.laminar.api.L._
 import ExternalAPI.{Request, Response}
 
 def computer(api: CIO[Response, Request]) = {
-  // define the behavior of `actuators` somehow
+  // TODO: send requests and receive responses from API
 }
 ```
 
-The `CIO[Sense, Actuator]` type is defined something like:
+You can think of the `CIO[Input, Output]` type as the following trait.
+> If you want to know the truth, use the source, Luke.
+> You will see it's actually defined as type alias in [Cycle.scala][laminar-cycle-source]
+> -- [@vic][@vic]
 
 ```scala
 trait CIO[I, O] {
-  val input:  EventStream[I]
-  val output: WriteBus[O]
+  val in:  EventStream[I]
+  val out: WriteBus[O]
 }
 ```
 
@@ -110,7 +114,7 @@ object Counter {
     numberOfInteractions: Int
   )
   
-  sealed trait Action // Type of the stimulus produced by the user
+  sealed trait Action // Type of the sensed stimulus produced by the user
   case object Increment extends Action
   case object Decrement extends Action
 
@@ -146,7 +150,7 @@ Let's explore our previous example code.
 
 * The `EIO[E]` type is just an alias for `CIO[E, E]`. 
 
-  EIO stands for EqualIO, meaning that both, senses and actuators have the same type `E`.
+  EIO stands for Equal IO, meaning that both, input and output have the same type `E`.
   It's equivalent to [Airstream]'s `EventBus[E]`
 
 * Our previous example does not render anything (we will get to producing views later).
@@ -157,9 +161,9 @@ Let's explore our previous example code.
 * The return type is `Mod[Element]`. 
 
   The `updatedState --> states` produces Laminar modifier that manages the event subscriptions. 
+  From now on we will be using the `type ModEl = Mod[Element]` alias included with this lib.
   
   Read more about modifiers and subscription ownership at [LaminarDocs].
-  
   All of this is part of Laminar's [memory safety and glitch free guarantees][LaminarSafety].
 
 
@@ -225,47 +229,42 @@ object FooDriver {
   case class Config(debug: Boolean = false)
 
   // The type of all possible inputs to this driver.
-  sealed trait Sense
-  case object Foo extends Sense
-  case object Moo extends Sense
+  sealed trait Input
+  case object Foo extends Input
+  case object Moo extends Input
  
   // The type of all possible outputs of this driver.
-  sealed trait Actuator
-  case object Bar extends Actuator
-  case object Baz extends Actuator
+  sealed trait Output
+  case object Bar extends Output
+  case object Baz extends Output
 
-  // This type normally specifies the input and output types
-  // from the PERSPECTIVE of the User. 
-  // That is, the user receives on the Actuator channel and produces on the Sense channel
-  type ActuatorSense = CIO[Actuator, Sense]
-
-  // User is a function that takes this driver's CIO[Actuator,Sense]
-  // and produces a Mod[Element] (eg a rendered element or subscription binders)
-  type User = ActuatorSense => Mod[Element]
+  // The type of IO devices as seen from the User perspective.
+  // eg, Users of this driver, take our Output as their input and our Input as their output type.
+  type UserIO = CIO[Output, Input]
 
   // This is the driver constructor, you can name this function whatever you like
-  // and have several of them. If you have a config object, curry it. Also if you
-  // need implicit arguments for your driver to work, add them.
-  def apply(config: Config)(user: User): Mod[Element] = {
+  // and have several of them. If you have a config object, curry it.
+  def apply(config: Config): Cycle[UserIO, ModEl] = { user: User[UserIO] =>
   
-    // Here we create cycled streams.
-    // Note that `io` corresponds to the `CIO[I, O]` as seen from the Driver perspective
-    // and that `oi` corresponds to `CIO[O, I]` as seen from the User's perspective.
-    val (io: CIO[Sense, Actuator], oi: CIO[Actuator, Sense]) = CIO[Sense, Actuator]
+    // Here we create a cyclic pair of IO streams. Conveniently aliases as PIO[I, O]
+    // pio is an object that holds four streams:
+    //  in[Input](pio) => EventStream[Input] ; out[Output](pio) => WriteBus[Output]
+    //  in[Output](pio) => EventStream[Output] ; out[Input](pio) => WriteBus[Input]
+    val pio = PIO[Input, Output]
 
-    val actuators: EventStream[Actuator] = io.flatMap { sense =>
-       // Produce a new Actuator stream as the result of withnessing a Sense
-       EventStream.fromValue(perform(sense), emitOnce = true)
+    val outputs: EventStream[Output] = pio.flatMap { input =>
+       // Produce a new Output stream as the result of sensing an Input
+       EventStream.fromValue(perform(input), emitOnce = true)
     }
   
-    cycle.amend(
-       actuators --> oi.input, // Send all produced Actuators to the input port of `oi`
-       user(oi) // Call the user function, providing this driver's `oi`
+    amend(
+       outputs --> pio, // Send all produced Outputs to the in[Output] port of `pio`
+       user(pio) // Call the user function, providing pio as `UserIO`
     )
   }
  
-  // Upon withnesing a Sense, the actor produces an Actuator
-  private def perform(sense: Sense): Actuator = sense match {
+  // Upon receiving an Input, we have to produce an Output
+  private def perform(input: Input): Output = input match {
     case Foo => Bar
     case Moo => Baz
   }
@@ -278,8 +277,8 @@ Drivers are used in the following way:
 ```scala
 import FooDriver._
 val ui = div(
-  FooDriver(config = Config) { foo: CIO[Actuator, Sense] =>
-    val receivedResponse: EventStream[String] = foo.input.map { 
+  FooDriver(config = Config) { foo: FooDriver.UserIO =>
+    val receivedResponse: EventStream[String] = foo.map { 
       case Bar => "You pressed Foo"
       case Baz => "You pressed Moo"
     }
@@ -290,19 +289,19 @@ val ui = div(
        child <-- lastResponse,
        button(
          "Produce Foo request for driver",
-         onClick.mapTo(Foo) --> foo.output
+         onClick.mapTo(Foo) --> foo
        ),
        button(
          "Produce Moo request for driver",
-         onClick.mapTo(Moo) --> foo.output
+         onClick.mapTo(Moo) --> foo
        )
      ) 
   }
 )
 ```
 
-Of course not all drivers are like this, some could provide many `CIO`'s to the `User` function,
-some could yield only `EventStream[Actuator]` or only `WriteBus[Sense]` to the `User` function.
+Of course not all drivers are like this, some could provide only an input-device to their users,
+other might also want to provide more than just an `InOut`.
 
 ### Available Drivers
 
