@@ -19,7 +19,7 @@ case "$1" in
    find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
    mkdir -p gh-pages
    touch gh-pages/.nojekill
-   cp -rf docs/index* README.md docs/ examples/ gh-pages/
+   cp -rf docs/index* docs/404* README.md docs/ examples/ gh-pages/
    find out/ -path '*fastOpt/dest/out*' | cpio -p -dum gh-pages/
    find out/ -path '*docJar/dest/javadoc/*' | cpio -p -dum gh-pages/
  ;;
