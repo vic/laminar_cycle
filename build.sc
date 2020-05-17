@@ -45,12 +45,13 @@ object drivers extends Module {
     def publishVersion      = T { meta.publishVersion }
     def pomSettings         = T { meta.pomSettings }
     override def moduleDeps = super.moduleDeps ++ Seq(cycle)
+    override def artifactName = s"driver-${millModuleBasePath.value.last}"
   }
 
   object all extends Driver {
     override def artifactName = "all-drivers"
     override def moduleDeps   = super.moduleDeps ++ Seq(
-      fetch, zio, topic, combine
+      fetch, zio, topic, combine, state
     )
 
     def mdocProperties = T {
@@ -68,22 +69,17 @@ object drivers extends Module {
     }
   }
 
-  object fetch extends Driver {
-    override def artifactName = "fetch-driver"
-  }
+  object fetch extends Driver
 
   object zio extends Driver {
-    override def artifactName = "zio-driver"
     override def ivyDeps      = super.ivyDeps() ++ Agg(meta.deps.zioStreams)
   }
 
-  object topic extends Driver {
-    override def artifactName = "topic-driver"
-  }
+  object topic extends Driver
 
-  object combine extends Driver {
-    override def artifactName = "combine-driver"
-  }
+  object combine extends Driver
+
+  object state extends Driver
 }
 
 object examples extends Module {

@@ -21,7 +21,7 @@ case "$1" in
    cp -rfv docs/index* docs/404* README.md docs/ examples/ gh-pages/
    find out/ -path '*fastOpt/dest/out*' | cpio -p -dumv gh-pages/
    find out/ -path '*docJar/dest/javadoc/*' | cpio -p -dumv gh-pages/
-   find gh-pages/docs -type d -exec touch {}/.nojekill \;
+   find gh-pages/docs -type d -exec touch {}/.nojekyll \;
  ;;
 
  cs)
