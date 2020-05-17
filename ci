@@ -15,10 +15,11 @@ case "$1" in
  ;;
 
  gh-pages)
-   $0 mill -i '{cycle.docJar,drivers._.docJar,examples._.fastOpt}'
+   $0 mill '{cycle.docJar,drivers._.docJar,examples._.fastOpt}'
    find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
    mkdir -p gh-pages
-   cp -rf README.md examples/ gh-pages/
+   touch gh-pages/.nojekill
+   cp -rf docs/index* README.md docs/ examples/ gh-pages/
    find out/ -path '*fastOpt/dest/out*' | cpio -p -dum gh-pages/
    find out/ -path '*docJar/dest/javadoc/*' | cpio -p -dum gh-pages/
  ;;
