@@ -3,8 +3,6 @@ package example.cycle_counter
 import cycle._
 import com.raquo.laminar.api.L._
 import org.scalajs.dom
-import StateDriver._
-import com.raquo.laminar.api.L
 
 object Example {
 
@@ -19,15 +17,16 @@ object Example {
 
   def initialState: Global = Global(globalName = "Global", local = None)
 
-  val globalNameLens = lens[Global, String](
-    memBijection(
-      fwd = _.map(_.globalName),
-      bwd = _.map {
-        case (newName, global) =>
-          global.copy(globalName = newName)
-      }
-    )
-  )
+  val globalNameLens: EMO[Global] => stateSlice[Global, String] =
+    stateSlice[Global, String](
+      memBijection(
+        fwd = _.map(_.globalName),
+        bwd = _.map {
+          case (newName, global) =>
+            global.copy(globalName = newName)
+        }
+      )
+    )(_)
 
   def nameView(label: String, name: EMO[String]): Div = {
     div(

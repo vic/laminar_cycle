@@ -9,8 +9,13 @@ private[cycle] trait Devices {
   type Tag[T] = izumi.reflect.Tag[T]
   type Has[T] = zio.Has[T]
 
-  type User[R, V]  = R => V
-  type Cycle[R, V] = User[R, V] => V
+  trait User[R, V] {
+    def apply(r: R): V
+  }
+
+  trait Cycle[R, V] {
+    def apply(user: User[R, V]): V
+  }
 
   type In[T]  = Has[EventStream[T]]
   type Out[T] = Has[WriteBus[T]]
