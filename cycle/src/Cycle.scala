@@ -1,12 +1,13 @@
-package cycle.internal
+package cycle.core
 
 import com.raquo.laminar.api.L._
-import izumi.reflect.Tag
-import zio.Has
-import zio.Has._
 
 private[cycle] object Devices extends Devices
 private[cycle] trait Devices {
+  import zio.Has
+
+  type Tag[T] = izumi.reflect.Tag[T]
+  type Has[T] = zio.Has[T]
 
   type User[R, V]  = R => V
   type Cycle[R, V] = User[R, V] => V
@@ -31,47 +32,71 @@ private[cycle] trait Devices {
   implicit def mem[T: Tag](mem: Mem[T]): Signal[T]  = mem.get[Signal[T]]
 
   type EIO[T] = EqlInOut[T]
-  implicit def EIO[T: Tag](b: EventBus[T]): EIO[T] = hasIn(b.events) ++ hasOut(b.writer)
-  def EIO[T: Tag]: EIO[T]                          = new EventBus[T]
 
-  type EMO[T] = MemInOut[T, T, T]
+  implicit def EIO[T: Tag](b: EventBus[T]): EIO[T] =
+    hasIn(b.events) ++ hasOut(b.writer)
+
+  def EIO[T: Tag]: EIO[T] = new EventBus[T]
+
+  type EMO[T] = MemOut[T, T]
+
   def EMO[T: Tag](m: Signal[T], i: EventStream[T], o: WriteBus[T]): EMO[T] =
-    hasMem(m) ++ hasIn(i) ++ hasOut(o)
+    hasMem(m) ++ hasOut(o)
+
+  def EMO[M: Tag](initial: => M): EMO[M] = MIO(initial)
 
   type MIO[M, I, O] = MemInOut[M, I, O]
-  def MIO[M: Tag, I: Tag, O: Tag](m: Signal[M], i: EventStream[I], o: WriteBus[O]): MIO[M, I, O] =
+
+  def MIO[M: Tag, I: Tag, O: Tag](
+      m: Signal[M],
+      i: EventStream[I],
+      o: WriteBus[O]
+  ): MIO[M, I, O] =
     hasMem(m) ++ hasIn(i) ++ hasOut(o)
+
+  def MIO[M: Tag](initial: => M): MIO[M, M, M] = MIO[M, M](_.startWith(initial))
+
+  def MIO[T: Tag, M: Tag](
+      initial: EventStream[T] => Signal[M]
+  ): MIO[M, T, T] = {
+    val bus = new EventBus[T]
+    val sig = initial(bus.events)
+    MIO[M, T, T](sig, bus.events, bus.writer)
+  }
 
   type CIO[I, O] = InOut[I, O]
 
   type PIO[I, O] = InOut[I, O] with InOut[O, I]
+
   def PIO[I: Tag, O: Tag](ib: EventBus[I], ob: EventBus[O]): PIO[I, O] =
-    hasIn(ib.events) ++ hasOut(ib.writer) ++ hasIn(ob.events) ++ hasOut(ob.writer)
+    hasIn(ib.events) ++ hasOut(ib.writer) ++ hasIn(ob.events) ++ hasOut(
+      ob.writer
+    )
+
   def PIO[I: Tag, O: Tag]: PIO[I, O] = PIO(new EventBus[I], new EventBus[O])
 
 }
 
 private[cycle] trait Bijection {
-  import Devices._
 
-  implicit def mapEventStream[A, B](implicit ab: A => B): EventStream[A] => EventStream[B] =
+  implicit def streamMap[A, B](
+      implicit ab: A => B
+  ): EventStream[A] => EventStream[B] =
     _.map(ab)
 
-  implicit def contramapWriteBus[A, B](implicit ba: B => A, owner: Owner): WriteBus[A] => WriteBus[B] =
-    _.contramapWriter(ba)
+  implicit def signalMap[A, B](implicit ab: A => B): Signal[A] => Signal[B] =
+    _.map(ab)
 
-  implicit def mapIn[A: Tag, B: Tag](implicit ab: EventStream[A] => EventStream[B]): In[A] => In[B] =
-    aIn => hasIn(ab(in(aIn)))
+  final class MemBijection[A, B](
+      val fwd: Signal[A] => Signal[B],
+      val bwd: EventStream[(B, A)] => EventStream[A]
+  )
 
-  implicit def contramapOut[A: Tag, B: Tag](implicit ba: WriteBus[B] => WriteBus[A]): Out[B] => Out[A] =
-    bOut => hasOut(ba(out(bOut)))
-
-  type BijectCIO[I1, O1, I2, O2] = Has[In[I1] => In[I2]] with Has[Out[O2] => Out[O1]]
-
-  implicit def bijectCIO[I1: Tag, O1: Tag, I2: Tag, O2: Tag](
-      implicit mapI: In[I1] => In[I2],
-      contramapO: Out[O2] => Out[O1]
-  ): BijectCIO[I1, O1, I2, O2] = Has(mapI) ++ Has(contramapO)
+  implicit def memBijection[A, B](
+      implicit
+      fwd: Signal[A] => Signal[B],
+      bwd: EventStream[(B, A)] => EventStream[A]
+  ): MemBijection[A, B] = new MemBijection[A, B](fwd, bwd)
 
 }
 
@@ -80,4 +105,8 @@ private[cycle] trait Helper {
   type ModEl = Mod[Element]
 
   def amend(mods: ModEl*): ModEl = inContext(_.amend(mods: _*))
+
+  def ownerMod(fn: Owner => ModEl): ModEl = {
+    onMountCallback { ctx => ctx.thisNode.amend(fn(ctx.owner)) }
+  }
 }

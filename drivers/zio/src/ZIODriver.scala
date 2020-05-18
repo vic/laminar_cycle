@@ -1,12 +1,11 @@
 package cycle
 
 import com.raquo.laminar.api.L._
-import izumi.reflect.Tag
 import zio.{CanFail, Runtime, ZIO}
 
 object ZIODriver {
 
-  def unsafeEither[R: Tag, E: CanFail: Tag, A: Tag](
+  def zioUnsafeEither[R: Tag, E: CanFail: Tag, A: Tag](
       runtime: Runtime[R]
   ): Cycle[CIO[Either[E, A], ZIO[R, E, A]], ModEl] = { user =>
     val pio = PIO[ZIO[R, E, A], Either[E, A]]
@@ -21,7 +20,7 @@ object ZIODriver {
     )
   }
 
-  def unsafeFuture[R: Tag, E <: Throwable: Tag, A: Tag](
+  def zioUnsafeFuture[R: Tag, E <: Throwable: Tag, A: Tag](
       runtime: Runtime[R]
   ): Cycle[CIO[A, ZIO[R, E, A]], ModEl] = { user =>
     val pio = PIO[ZIO[R, E, A], A]

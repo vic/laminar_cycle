@@ -12,7 +12,14 @@ object FetchDriver {
   private type Input  = Request
   private type Output = (Request, Response)
 
-  def apply(implicit ec: ExecutionContext): Cycle[CIO[Output, Input], ModEl] = {
+  type FetchIO = CIO[Output, Input]
+
+  def fetchDriver(
+      user: User[FetchIO, ModEl]
+  )(implicit ec: ExecutionContext): ModEl =
+    fetchDriver(ec)(user)
+
+  def fetchDriver(implicit ec: ExecutionContext): Cycle[FetchIO, ModEl] = {
     user: User[CIO[Output, Input], ModEl] =>
       val pio = PIO[Input, Output]
       val reqRes = pio.flatMap { req =>

@@ -1,1 +1,4 @@
-package object cycle extends cycle.internal.Devices with cycle.internal.Bijection with cycle.internal.Helper
+package object cycle
+    extends cycle.core.Devices
+    with cycle.core.Bijection
+    with cycle.core.Helper

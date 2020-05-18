@@ -21,8 +21,8 @@ object meta {
     )
 
   object deps {
-    val laminar = ivy"com.raquo::laminar::${laminarVersion}"
-    val zio = ivy"dev.zio::zio::${zioVersion}"
+    val laminar    = ivy"com.raquo::laminar::${laminarVersion}"
+    val zio        = ivy"dev.zio::zio::${zioVersion}"
     val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
   }
 }
@@ -33,32 +33,40 @@ trait BaseModule extends ScalaJSModule {
 }
 
 object cycle extends BaseModule with PublishModule {
-  override def artifactName = "cycle"
+  override def artifactName = "cycle-core"
   def publishVersion        = T { meta.publishVersion }
   def pomSettings           = T { meta.pomSettings }
-  override def ivyDeps      = super.ivyDeps() ++ Agg(meta.deps.laminar, meta.deps.zio)
+  override def ivyDeps =
+    super.ivyDeps() ++ Agg(meta.deps.laminar, meta.deps.zio)
 }
 
 object drivers extends Module {
 
   trait Driver extends BaseModule with PublishModule {
-    def publishVersion      = T { meta.publishVersion }
-    def pomSettings         = T { meta.pomSettings }
-    override def moduleDeps = super.moduleDeps ++ Seq(cycle)
+    def publishVersion        = T { meta.publishVersion }
+    def pomSettings           = T { meta.pomSettings }
+    override def moduleDeps   = super.moduleDeps ++ Seq(cycle)
     override def artifactName = s"driver-${millModuleBasePath.value.last}"
   }
 
   object all extends Driver {
-    override def artifactName = "all-drivers"
-    override def moduleDeps   = super.moduleDeps ++ Seq(
-      fetch, zio, topic, combine, state
+    override def artifactName = "cycle"
+    override def moduleDeps = super.moduleDeps ++ Seq(
+      fetch,
+      zio,
+      topic,
+      combine,
+      state
     )
 
     def mdocProperties = T {
       val cp = (
         runClasspath()
       ).map(_.path.toString).mkString(":")
-      val jsc = scalacPluginClasspath().map(_.path.toString).find(_.contains("scalajs-compiler")).get
+      val jsc = scalacPluginClasspath()
+        .map(_.path.toString)
+        .find(_.contains("scalajs-compiler"))
+        .get
       val mdoc =
         s"""
           |js-classpath=${cp}
@@ -72,14 +80,15 @@ object drivers extends Module {
   object fetch extends Driver
 
   object zio extends Driver {
-    override def ivyDeps      = super.ivyDeps() ++ Agg(meta.deps.zioStreams)
+    override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.zioStreams)
   }
 
   object topic extends Driver
 
+  object state extends Driver
+
   object combine extends Driver
 
-  object state extends Driver
 }
 
 object examples extends Module {
@@ -88,6 +97,7 @@ object examples extends Module {
     override def moduleDeps = super.moduleDeps :+ drivers.all
   }
 
+  object onion_state   extends Example
   object cycle_counter extends Example
   object swapi_driver  extends Example
 

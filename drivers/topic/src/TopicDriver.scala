@@ -1,51 +1,60 @@
 package cycle
 
 import com.raquo.laminar.api.L._
-import izumi.reflect.Tag
 
 object TopicDriver {
 
   // type T = Topic
-  type Handler[T, I, O] = EventStream[Request[T, I, O]] => EventStream[Response[T, I, O]]
+  type Handler[T, I, O] = EventStream[Pub[T, I, O]] => EventStream[Msg[T, I, O]]
 
   sealed trait Input[T, I, O]
-  final case class Request[T, I, O](topic: T, payload: I)         extends Input[T, I, O]
-  final case class Register[T, I, O](handler: Handler[T, I, O])   extends Input[T, I, O]
-  final case class Deregister[T, I, O](handler: Handler[T, I, O]) extends Input[T, I, O]
+  final case class Pub[T, I, O](topic: T, payload: I) extends Input[T, I, O]
+  final case class Sub[T, I, O](handler: Handler[T, I, O])
+      extends Input[T, I, O]
+  final case class UnSub[T, I, O](handler: Handler[T, I, O])
+      extends Input[T, I, O]
 
-  final case class Response[T, I, O](topic: T, payload: O)
+  final case class Msg[T, I, O](topic: T, payload: O)
 
-  def apply[T: Tag, I: Tag, O: Tag]: Cycle[CIO[Response[T, I, O], Input[T, I, O]], ModEl] = { user =>
-    val pio = PIO[Input[T, I, O], Response[T, I, O]]
+  def topic[T: Tag, I: Tag, O: Tag]
+      : Cycle[CIO[Msg[T, I, O], Input[T, I, O]], ModEl] = { user =>
+    val pio = PIO[Input[T, I, O], Msg[T, I, O]]
 
     val handlers        = EIO[Set[Handler[T, I, O]]]
     val currentHandlers = handlers.startWith(Set.empty)
 
-    val registers   = pio.collect { case register: Register[T, I, O]     => register }
-    val deregisters = pio.collect { case deregister: Deregister[T, I, O] => deregister }
-    val requests    = pio.collect { case request: Request[T, I, O]       => request }
+    val subIn   = pio.collect { case sub: Sub[T, I, O]     => sub }
+    val unsubIn = pio.collect { case unsub: UnSub[T, I, O] => unsub }
+    val pubIn   = pio.collect { case pub: Pub[T, I, O]     => pub }
 
-    val registrations = registers.map(_.handler).withCurrentValueOf(currentHandlers).map {
+    val subs = subIn.map(_.handler).withCurrentValueOf(currentHandlers).map {
       case (handler, handlers) => handlers + handler
     }
 
-    val deregistrations = deregisters.map(_.handler).withCurrentValueOf(currentHandlers).map {
-      case (handler, handlers) => handlers - handler
-    }
+    val unsubs =
+      unsubIn.map(_.handler).withCurrentValueOf(currentHandlers).map {
+        case (handler, handlers) => handlers - handler
+      }
 
-    val currentHandlingStream: Signal[EventStream[Handler[T, I, O]]] = currentHandlers
-      .map(set => EventStream.fromSeq(set.toSeq, emitOnce = false))
+    val currentHandlingStream: Signal[EventStream[Handler[T, I, O]]] =
+      currentHandlers
+        .map(set => EventStream.fromSeq(set.toSeq, emitOnce = false))
 
-    val responses: EventStream[Response[T, I, O]] =
-      requests.withCurrentValueOf(currentHandlingStream).flatMap {
-        case (request: Request[T, I, O], handlerStream: EventStream[Handler[T, I, O]]) =>
-          handlerStream.flatMap { handler => handler(EventStream.fromValue(request, emitOnce = true)) }
+    val msgs: EventStream[Msg[T, I, O]] =
+      pubIn.withCurrentValueOf(currentHandlingStream).flatMap {
+        case (
+            pub: Pub[T, I, O],
+            handlerStream: EventStream[Handler[T, I, O]]
+            ) =>
+          handlerStream.flatMap { handler =>
+            handler(EventStream.fromValue(pub, emitOnce = true))
+          }
       }
 
     amend(
-      responses --> pio,
-      registrations --> handlers,
-      deregistrations --> handlers,
+      msgs --> pio,
+      subs --> handlers,
+      unsubs --> handlers,
       user(pio)
     )
   }
