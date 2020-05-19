@@ -11,20 +11,22 @@ private[cycle] trait Devices {
   type Tag[T] = izumi.reflect.Tag[T]
   type Has[T] = zio.Has[T]
 
-  trait User[-Devices] {
+  trait User[-Devices <: Has[_]] {
     def apply(devices: Devices): ModEl
   }
 
-  implicit def userFromFunction[Devices](fun: Devices => ModEl): User[Devices] =
+  implicit def userFromFunction[Devices <: Has[_]](
+      fun: Devices => ModEl
+  ): User[Devices] =
     new User[Devices] {
       override def apply(devices: Devices): ModEl = fun(devices)
     }
 
-  trait Cycle[+Devices] {
+  trait Cycle[+Devices <: Has[_]] {
     def apply(user: User[Devices]): ModEl
   }
 
-  implicit def cycleFromFunction[Devices](
+  implicit def cycleFromFunction[Devices <: Has[_]](
       fun: User[Devices] => ModEl
   ): Cycle[Devices] = new Cycle[Devices] {
     def apply(user: User[Devices]): ModEl = fun(user)
