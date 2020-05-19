@@ -314,25 +314,32 @@ Individual Drivers:
 
   A cycle driver around `fetch` for executing HTTP requests.
   
-  
-* [CombineDriver][combine-driver-javadoc] ([source][combine-driver-source])
-  > Artifact: `com.github.vic.laminar_cycle::combine-driver::VERSION`
+* [StateDriver][state-driver-javadoc] ([source][state-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::state-driver::VERSION`
 
-  A driver that can combine two other drivers by projecting their `CIO` streams.
-  
+  This driver allows you to have State-layers. See the [Onion] example.
+  This way sub-components can have an inward view, just a layer of the outer 
+  bigger state and their updates also get propagated outwards.
 
 * [TopicDriver][topic-driver-javadoc] ([source][topic-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::topic-driver::VERSION`
 
-  This driver can be used by Cyclic functions to pub/sub on a given topic.
-  This way components can send and response messages between them.
-
+  A Pub/Sub driver that allows any component in the system to communicate
+  with each other by registering to their topic of interest.
+  
+  You can use this to broadcast events across the whole application.
+  
 
 * [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::zio-driver::VERSION`
 
   - `ZIODriver.unsafeEither` runs fallible-effects into `Either[E,A]` values.
   - `ZIODriver.unsafeFuture` runs incoming effects with `runtime.unsafeRunToFuture`
+  
+* [CombineDriver][combine-driver-javadoc] ([source][combine-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::combine-driver::VERSION`
+
+  A driver that can combine two other drivers by projecting their `CIO` streams.
   
 
 ## Examples
@@ -343,6 +350,10 @@ Individual Drivers:
   
   Shows basics of using `cycle.InOut` types, handling user actions to update 
   the current state and update a view based on it.
+  
+* [Onion State] ([source][onion-source])
+
+  Shows basic usage of the State driver in an Onion-layered app.
 
 * [SWAPIDriver] ([source][swapi-driver-source])
 
@@ -369,6 +380,9 @@ Individual Drivers:
 [Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/src/index.html
 [counter-source]: examples/cycle_counter/src
 
+[Onion State]: https://vic.github.io/laminar_cycle/examples/onion_state/src/index.html
+[onion-source]: examples/onion_state/src
+
 [SWAPI]: https://swapi.dev/
 [SWAPIDriver]: https://vic.github.io/laminar_cycle/examples/swapi_driver/src/index.html
 [swapi-driver-source]: examples/swapi_driver/src
@@ -378,6 +392,9 @@ Individual Drivers:
 
 [fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/docJar/dest/javadoc/index.html
 [fetch-driver-source]: drivers/fetch/src
+
+[state-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/state/docJar/dest/javadoc/index.html
+[state-driver-source]: drivers/state/src
 
 [topic-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/topic/docJar/dest/javadoc/index.html
 [topic-driver-source]: drivers/topic/src

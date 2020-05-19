@@ -1,20 +1,33 @@
 package cycle.core
 
 import com.raquo.laminar.api.L._
+import com.raquo.laminar.nodes.ReactiveElement
 
 private[cycle] object Devices extends Devices
 private[cycle] trait Devices {
   import zio.Has
+  import Helper.ModEl
 
   type Tag[T] = izumi.reflect.Tag[T]
   type Has[T] = zio.Has[T]
 
-  trait User[R, V] {
-    def apply(r: R): V
+  trait User[-Devices] {
+    def apply(devices: Devices): ModEl
   }
 
-  trait Cycle[R, V] {
-    def apply(user: User[R, V]): V
+  implicit def userFromFunction[Devices](fun: Devices => ModEl): User[Devices] =
+    new User[Devices] {
+      override def apply(devices: Devices): ModEl = fun(devices)
+    }
+
+  trait Cycle[+Devices] {
+    def apply(user: User[Devices]): ModEl
+  }
+
+  implicit def cycleFromFunction[Devices](
+      fun: User[Devices] => ModEl
+  ): Cycle[Devices] = new Cycle[Devices] {
+    def apply(user: User[Devices]): ModEl = fun(user)
   }
 
   type In[T]  = Has[EventStream[T]]
@@ -45,7 +58,7 @@ private[cycle] trait Devices {
 
   type EMO[T] = MemOut[T, T]
 
-  def EMO[T: Tag](m: Signal[T], i: EventStream[T], o: WriteBus[T]): EMO[T] =
+  def EMO[T: Tag](m: Signal[T], o: WriteBus[T]): EMO[T] =
     hasMem(m) ++ hasOut(o)
 
   def EMO[M: Tag](initial: => M): EMO[M] = MIO(initial)
@@ -74,15 +87,15 @@ private[cycle] trait Devices {
   type PIO[I, O] = InOut[I, O] with InOut[O, I]
 
   def PIO[I: Tag, O: Tag](ib: EventBus[I], ob: EventBus[O]): PIO[I, O] =
-    hasIn(ib.events) ++ hasOut(ib.writer) ++ hasIn(ob.events) ++ hasOut(
-      ob.writer
-    )
+    hasIn(ib.events) ++ hasOut(ib.writer) ++
+      hasIn(ob.events) ++ hasOut(ob.writer)
 
   def PIO[I: Tag, O: Tag]: PIO[I, O] = PIO(new EventBus[I], new EventBus[O])
 
 }
 
 private[cycle] trait Bijection {
+  import Devices._
 
   implicit def streamMap[A, B](
       implicit ab: A => B
@@ -92,16 +105,45 @@ private[cycle] trait Bijection {
   implicit def signalMap[A, B](implicit ab: A => B): Signal[A] => Signal[B] =
     _.map(ab)
 
-  final class MemBijection[A, B](
-      val fwd: Signal[A] => Signal[B],
-      val bwd: EventStream[(B, A)] => EventStream[A]
+  final case class MemBijection[A, B](
+      fwd: Signal[A] => Signal[B],
+      bwd: EventStream[(B, A)] => EventStream[A]
   )
 
   implicit def memBijection[A, B](
       implicit
       fwd: Signal[A] => Signal[B],
       bwd: EventStream[(B, A)] => EventStream[A]
-  ): MemBijection[A, B] = new MemBijection[A, B](fwd, bwd)
+  ): MemBijection[A, B] = MemBijection[A, B](fwd, bwd)
+
+  implicit def memBijection[A, B](
+      implicit
+      fwd: A => B,
+      bwd: (B, A) => A
+  ): MemBijection[A, B] = MemBijection(
+    fwd = _.composeChangesAndInitial(_.map(fwd), _.map(fwd)),
+    bwd = _.map2(bwd)
+  )
+
+  def emoBiject[A: Tag, B: Tag](
+      from: EMO[A]
+  )(implicit bijection: MemBijection[A, B]): (Binder[Element], EMO[B]) = {
+    val signalB: Signal[B]  = from.compose(bijection.fwd)
+    val writeB: EventBus[B] = new EventBus[B]
+    val emoB: EMO[B]        = hasMem(signalB) ++ hasOut(writeB.writer)
+    val binder = Binder[Element] { el =>
+      ReactiveElement.bindCallback(el) { ctx =>
+        // All this because contracomposeWriter expects a an implicit owner
+        val contraB: WriteBus[B] = from.contracomposeWriter[B](
+          _.withCurrentValueOf(from).compose(bijection.bwd)
+        )(ctx.owner)
+        el.amend(
+          writeB.events --> contraB
+        )
+      }
+    }
+    binder -> emoB
+  }
 
 }
 

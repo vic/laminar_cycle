@@ -9,7 +9,9 @@ object SWAPIDriver {
   import SWAPI._
   import SWAPIFacade.ops._
 
-  private def processRequest(request: Request)(implicit ec: ExecutionContext): Future[Response] =
+  private def processRequest(
+      request: Request
+  )(implicit ec: ExecutionContext): Future[Response] =
     request match {
       case GetPerson(id) =>
         getPerson(id).toFuture.map(GotPerson(_))
@@ -22,10 +24,10 @@ object SWAPIDriver {
 
   type UserIO = CIO[Output, Input]
 
-  def apply(user: User[UserIO, ModEl])(implicit ec: ExecutionContext): ModEl =
+  def apply(user: User[UserIO])(implicit ec: ExecutionContext): ModEl =
     driver(ec)(user) // Just swap the implicit parameters to make compiler happy
 
-  def driver(implicit ec: ExecutionContext): Cycle[UserIO, ModEl] = { user =>
+  def driver(implicit ec: ExecutionContext): Cycle[UserIO] = { user =>
     val pio = PIO[Input, Output]
 
     val reqAndRes: EventStream[Output] = pio.flatMap { req =>

@@ -5,7 +5,8 @@ import org.scalajs.dom.experimental._
 
 import scala.concurrent.ExecutionContext
 
-object FetchDriver {
+case class fetch(user: User[fetch.FetchIO])
+object fetch {
 
   final case class Request(input: RequestInfo, init: RequestInit = null)
 
@@ -14,23 +15,17 @@ object FetchDriver {
 
   type FetchIO = CIO[Output, Input]
 
-  def fetchDriver(
-      user: User[FetchIO, ModEl]
-  )(implicit ec: ExecutionContext): ModEl =
-    fetchDriver(ec)(user)
-
-  def fetchDriver(implicit ec: ExecutionContext): Cycle[FetchIO, ModEl] = {
-    user: User[CIO[Output, Input], ModEl] =>
-      val pio = PIO[Input, Output]
-      val reqRes = pio.flatMap { req =>
-        EventStream.fromFuture {
-          Fetch.fetch(req.input, req.init).toFuture.map(res => req -> res)
-        }
+  implicit def toMod(f: fetch)(implicit ec: ExecutionContext): ModEl = {
+    import f.user
+    val pio = PIO[Input, Output]
+    val reqRes = pio.flatMap { req =>
+      EventStream.fromFuture {
+        Fetch.fetch(req.input, req.init).toFuture.map(res => req -> res)
       }
-      amend(
-        reqRes --> pio,
-        user(pio)
-      )
+    }
+    amend(
+      reqRes --> pio,
+      user(pio)
+    )
   }
-
 }

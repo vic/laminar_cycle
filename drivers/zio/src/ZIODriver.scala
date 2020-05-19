@@ -1,13 +1,33 @@
 package cycle
 
 import com.raquo.laminar.api.L._
-import zio.{CanFail, Runtime, ZIO}
+import zio.{CanFail, Runtime, ZIO, URIO, RIO}
 
-object ZIODriver {
+case class zioUnsafeRun[R, E, A](runtime: Runtime[R])
+object zioUnsafeRun {
 
-  def zioUnsafeEither[R: Tag, E: CanFail: Tag, A: Tag](
-      runtime: Runtime[R]
-  ): Cycle[CIO[Either[E, A], ZIO[R, E, A]], ModEl] = { user =>
+  type InfallibleIO[R, A] = CIO[A, URIO[R, A]]
+  implicit def cycleInfallible[R: Tag, A: Tag](
+      zura: zioUnsafeRun[R, Nothing, A]
+  ): Cycle[InfallibleIO[R, A]] = { user =>
+    import zura._
+    val pio = PIO[URIO[R, A], A]
+
+    val res: EventStream[A] = pio.flatMap { effect: URIO[R, A] =>
+      EventStream.fromValue(runtime.unsafeRun(effect), emitOnce = true)
+    }
+
+    amend(
+      res --> pio,
+      user(pio)
+    )
+  }
+
+  type EitherIO[R, E, A] = CIO[Either[E, A], ZIO[R, E, A]]
+  implicit def cycleFallible[R: Tag, E: CanFail: Tag, A: Tag](
+      zura: zioUnsafeRun[R, E, A]
+  ): Cycle[EitherIO[R, E, A]] = { user =>
+    import zura._
     val pio = PIO[ZIO[R, E, A], Either[E, A]]
 
     val res: EventStream[Either[E, A]] = pio.flatMap { effect: ZIO[R, E, A] =>
@@ -20,12 +40,14 @@ object ZIODriver {
     )
   }
 
-  def zioUnsafeFuture[R: Tag, E <: Throwable: Tag, A: Tag](
-      runtime: Runtime[R]
-  ): Cycle[CIO[A, ZIO[R, E, A]], ModEl] = { user =>
-    val pio = PIO[ZIO[R, E, A], A]
+  type FutureIO[R, A] = CIO[A, RIO[R, A]]
+  implicit def cycleFuture[R: Tag, Throwable, A: Tag](
+      zura: zioUnsafeRun[R, Throwable, A]
+  ): Cycle[FutureIO[R, A]] = { user =>
+    import zura._
+    val pio = PIO[RIO[R, A], A]
 
-    val res: EventStream[A] = pio.flatMap { effect: ZIO[R, E, A] =>
+    val res: EventStream[A] = pio.flatMap { effect: RIO[R, A] =>
       EventStream.fromFuture { runtime.unsafeRunToFuture(effect) }
     }
 
