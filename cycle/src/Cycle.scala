@@ -2,16 +2,19 @@ package cycle.core
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement
+import cycle.core
 
-private[cycle] object Devices extends Devices
-private[cycle] trait Devices {
-  import zio.Has
+private[cycle] trait Core
+  extends Devices with Bijection with Helper
+
+private[core] object Devices extends Devices
+private[core] trait Devices {
   import Helper.ModEl
 
   type Tag[T] = izumi.reflect.Tag[T]
   type Has[T] = zio.Has[T]
 
-  trait User[-Devices <: Has[_]] {
+  trait User[-Devices <: Has[_]] { self =>
     def apply(devices: Devices): ModEl
   }
 
@@ -99,7 +102,29 @@ private[cycle] trait Devices {
 
 }
 
-private[cycle] trait Bijection {
+private[core] object Combine {
+  import Devices._
+
+  import zio.Has
+
+  implicit class CyclePlus[T, D <: Has[T]](val self: Cycle[D]) extends AnyVal {
+    def ++[A: Tag, B: Tag](other: Cycle[Has[B]])(ev: Has.MustHave[D, A]): Cycle[Has[A] with Has[B]] = {
+      cyclePlus[A, B](self.asInstanceOf[Cycle[Has[A]]], other)
+    }
+  }
+
+  def cyclePlus[A: Tag, B: Tag](aCycle: Cycle[Has[A]], bCycle: Cycle[Has[B]]): Cycle[Has[A] with Has[B]] = {
+    abUser =>
+      aCycle { aDevices =>
+        bCycle { bDevices =>
+          abUser(aDevices ++ bDevices)
+        }
+      }
+  }
+
+}
+
+private[core] trait Bijection {
   import Devices._
 
   implicit def streamMap[A, B](
@@ -152,8 +177,8 @@ private[cycle] trait Bijection {
 
 }
 
-private[cycle] object Helper extends Helper
-private[cycle] trait Helper {
+private[core] object Helper extends Helper
+private[core] trait Helper {
   type ModEl = Mod[Element]
 
   def amend(mods: ModEl*): ModEl = inContext(_.amend(mods: _*))
