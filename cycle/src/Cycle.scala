@@ -42,14 +42,17 @@ private[cycle] trait Devices {
   type EqlInOut[T]       = InOut[T, T]
   type MemInOut[M, I, O] = Mem[M] with InOut[I, O]
 
-  implicit def hasIn[T: Tag](o: EventStream[T]): In[T] = Has(o)
-  implicit def in[T: Tag](in: In[T]): EventStream[T]   = in.get[EventStream[T]]
+  implicit def hasIn[T: Tag](o: EventStream[T]): In[T] = has(o)
+  implicit def in[T: Tag](in: In[T]): EventStream[T]   = at(in)
 
-  implicit def hasOut[T: Tag](o: WriteBus[T]): Out[T] = Has(o)
-  implicit def out[T: Tag](out: Out[T]): WriteBus[T]  = out.get[WriteBus[T]]
+  implicit def hasOut[T: Tag](o: WriteBus[T]): Out[T] = has(o)
+  implicit def out[T: Tag](out: Out[T]): WriteBus[T]  = at(out)
 
-  implicit def hasMem[T: Tag](s: Signal[T]): Mem[T] = Has(s)
-  implicit def mem[T: Tag](mem: Mem[T]): Signal[T]  = mem.get[Signal[T]]
+  implicit def hasMem[T: Tag](s: Signal[T]): Mem[T] = has(s)
+  implicit def mem[T: Tag](mem: Mem[T]): Signal[T]  = at(mem)
+
+  def has[T: Tag](a: T): Has[T]           = zio.Has[T](a)
+  implicit def at[T: Tag](has: Has[T]): T = has.get[T]
 
   type EIO[T] = EqlInOut[T]
 
