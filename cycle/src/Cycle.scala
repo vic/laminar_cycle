@@ -18,13 +18,14 @@ private[core] trait Core {
   trait CycleFn[+Devices <: Has[_], Ret] extends (User[Devices] => Ret)
   type Cycle[+Devices <: Has[_]] = CycleFn[Devices, ModEl]
 
-  trait Driver[+Devices <: Has[_]] {
-    def devices: Devices
-    def binds: Binds
+  sealed trait Driver[+Devices <: Has[_]] {
+    val devices: Devices
+    val binds: Binds
 
     def cycle: Cycle[Devices] = { user => amend(binds, user(devices)) }
 
     def apply(user: User[Devices]): ModEl = cycle(user)
+    def toTuple: (Devices, Binds)         = devices -> binds
   }
 
   object Driver {
@@ -34,11 +35,12 @@ private[core] trait Core {
     ): Driver[Devices] = {
       val (aDevices, aBinds) = (devices, binds)
       new Driver[Devices] {
-        def devices = aDevices
-        def binds   = aBinds
+        val devices = aDevices
+        val binds   = aBinds
       }
     }
   }
+
 }
 
 private[core] object Devices extends Devices
@@ -147,7 +149,7 @@ private[core] trait Bijection {
 
   def emoBiject[A: Tag, B: Tag](
       from: EMO[A]
-  )(implicit bijection: MemBijection[A, B]): (Binder[Element], EMO[B]) = {
+  )(implicit bijection: MemBijection[A, B]): cycle.Driver[EMO[B]] = {
     val signalB: Signal[B]  = from.compose(bijection.fwd)
     val writeB: EventBus[B] = new EventBus[B]
     val emoB: EMO[B]        = hasMem(signalB) ++ hasOut(writeB.writer)
@@ -162,7 +164,7 @@ private[core] trait Bijection {
         )
       }
     }
-    binder -> emoB
+    cycle.Driver(emoB, binder)
   }
 
 }

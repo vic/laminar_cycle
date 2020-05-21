@@ -18,16 +18,14 @@ object onion {
 
   def layer[A: Tag, B: Tag](
       from: EMO[A]
-  )(fwd: A => B)(bwd: (B, A) => A): (Binder[Element], EMO[B]) = {
+  )(fwd: A => B)(bwd: (B, A) => A): Driver[EMO[B]] = {
     implicit val bij = memBijection[A, B](fwd, bwd)
-    emoBiject(from)
+    emoBiject[A, B](from)
   }
 
   implicit def driver[A: Tag, B: Tag](onion: onion[A, B]): Driver[EMO[B]] = {
-    import onion._
-    implicit val bij   = onion.bijection
-    val (binder, emoB) = emoBiject[A, B](from)
-    Driver(emoB, binder)
+    implicit val bij = onion.bijection
+    emoBiject[A, B](onion.from)
   }
 
 }

@@ -18,39 +18,46 @@ object Example {
   )
 
   def globalView(global: EMO[Global]): Div = {
-    val (binder: Binder[Element], name: EMO[String]) =
-      onion.layer[Global, String](global)(_.globalName) {
-        case (globalName, global) => global.copy(globalName = globalName)
-      }
+    // You can ask any driver for it's devices and binders, but in that case
+    // You MUST install the binder somewhere in order for dynamic subscriptions to work
+    val (nameIO, nameBind) =
+      (onion
+        .layer[Global, String](global)(_.globalName) {
+          case (globalName, global) => global.copy(globalName = globalName)
+        })
+        .toTuple
 
     div(
-      binder, // IMPORTANT, onion.layer returns this binder that will activate subscriptions
+      nameBind, // IMPORTANT, this will activate subscriptions
       "Global state",
       borderStyle := "dotted",
       borderColor := "red",
       nameInput(
         "Global name",
-        name,
-        name
+        nameIO,
+        nameIO
       )
     )
   }
 
   def localView(local: EMO[Local]): Div = {
-    val (binder: Binder[Element], name: EMO[String]) =
-      onion.layer[Local, String](local)(_.localName) {
+    // You can ask any driver for it's devices and binders, but in that case
+    // You MUST install the binder somewhere in order for dynamic subscriptions to work
+    val (nameIO, nameBind) = (onion
+      .layer[Local, String](local)(_.localName) {
         case (localName, local) => local.copy(localName = localName)
-      }
+      })
+      .toTuple
 
     div(
-      binder, // IMPORTANT, onion.layer returns this binder that will activate subscriptions
+      nameBind, // IMPORTANT, this will activate subscriptions
       "Local state",
       borderStyle := "dotted",
       borderColor := "blue",
       nameInput(
         "Local name",
-        name,
-        name
+        nameIO,
+        nameIO
       )
     )
   }
