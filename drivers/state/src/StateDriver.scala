@@ -2,19 +2,15 @@ package cycle
 
 import com.raquo.laminar.api.L._
 
-case class state[M, T](initial: EventStream[T] => Signal[M])
+case class state[M, T](initial: EventStream[T] => Signal[M]) extends AnyVal
 object state {
-
-  type StateIO[M, T]    = MIO[M, T, T]
-  type StateCycle[M, T] = Cycle[StateIO[M, T]]
+  type StateIO[M, T] = MIO[M, T, T]
 
   def apply[M](initial: => M): state[M, M] = state[M, M](_.startWith(initial))
 
-  implicit def cycle[M: Tag, T: Tag](st: state[M, T]): StateCycle[M, T] = {
-    user =>
-      import st._
-      user(MIO(initial))
-  }
+  implicit def driver[M: Tag, T: Tag](
+      state: state[M, T]
+  ): Driver[StateIO[M, T]] = Driver(MIO(state.initial))
 }
 
 case class onion[A, B](bijection: MemBijection[A, B])(val from: EMO[A])
@@ -27,12 +23,11 @@ object onion {
     emoBiject(from)
   }
 
-  implicit def cycle[A: Tag, B: Tag](onion: onion[A, B]): Cycle[EMO[B]] = {
-    user =>
-      import onion._
-      implicit val bij   = onion.bijection
-      val (binder, emoB) = emoBiject[A, B](from)
-      amend(binder, user(emoB))
+  implicit def driver[A: Tag, B: Tag](onion: onion[A, B]): Driver[EMO[B]] = {
+    import onion._
+    implicit val bij   = onion.bijection
+    val (binder, emoB) = emoBiject[A, B](from)
+    Driver(emoB, binder)
   }
 
 }

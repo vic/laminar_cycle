@@ -2,7 +2,6 @@ package cycle
 
 import com.raquo.laminar.api.L._
 
-case class topic[T, I, O](user: User[topic.TopicIO[T, I, O]])
 object topic {
 
   // type T = Topic
@@ -19,8 +18,7 @@ object topic {
 
   type TopicIO[T, I, O] = CIO[Msg[T, I, O], Input[T, I, O]]
 
-  def toMod[T: Tag, I: Tag, O: Tag](driver: topic[T, I, O]): ModEl = {
-    import driver._
+  def driver[T: Tag, I: Tag, O: Tag]: Driver[TopicIO[T, I, O]] = {
     val pio = PIO[Input[T, I, O], Msg[T, I, O]]
 
     val handlers        = EIO[Set[Handler[T, I, O]]]
@@ -54,12 +52,7 @@ object topic {
           }
       }
 
-    amend(
-      msgs --> pio,
-      subs --> handlers,
-      unsubs --> handlers,
-      user(pio)
-    )
+    Driver(pio, msgs --> pio, subs --> handlers, unsubs --> handlers)
   }
 
 }

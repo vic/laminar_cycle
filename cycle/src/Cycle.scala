@@ -3,11 +3,11 @@ package cycle.core
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement
 
-private[cycle] trait Core extends Devices with Bijection with Helper
+private[cycle] trait API extends Core with Devices with Bijection with Helper
 
-private[core] object Devices extends Devices
-private[core] trait Devices {
-  import Helper.{ModEl, Binds}
+private[core] object Core extends Core
+private[core] trait Core {
+  import Helper._
 
   type Tag[T] = izumi.reflect.Tag[T]
   type Has[T] = zio.Has[T]
@@ -18,14 +18,33 @@ private[core] trait Devices {
   trait CycleFn[+Devices <: Has[_], Ret] extends (User[Devices] => Ret)
   type Cycle[+Devices <: Has[_]] = CycleFn[Devices, ModEl]
 
-  trait Driver[+Devices <: Has[_]] extends (() => (Binds, Devices))
+  trait Driver[+Devices <: Has[_]] {
+    def devices: Devices
+    def binds: Binds
 
-  implicit def driverToCycle[Devices <: Has[_]](
-      driver: Driver[Devices]
-  ): Cycle[Devices] = { user =>
-    val (binder, devices) = driver()
-    cycle.amend(binder, user(devices))
+    def cycle: Cycle[Devices] = { user => amend(binds, user(devices)) }
+
+    def apply(user: User[Devices]): ModEl = cycle(user)
   }
+
+  object Driver {
+    def apply[Devices <: Has[_]](
+        devices: Devices,
+        binds: Binder[Element]*
+    ): Driver[Devices] = {
+      val (aDevices, aBinds) = (devices, binds)
+      new Driver[Devices] {
+        def devices = aDevices
+        def binds   = aBinds
+      }
+    }
+  }
+}
+
+private[core] object Devices extends Devices
+private[core] trait Devices {
+  import Core._
+  import Helper._
 
   type In[T]  = Has[EventStream[T]]
   type Out[T] = Has[WriteBus[T]]
@@ -95,6 +114,7 @@ private[core] trait Devices {
 }
 
 private[core] trait Bijection {
+  import Core._
   import Devices._
 
   implicit def streamMap[A, B](
@@ -152,10 +172,10 @@ private[core] trait Helper {
   type ModEl = Mod[Element]
   type Binds = Seq[Binder[Element]]
 
-  def binds(binds: Binder[Element]*): Binds = binds
-  def amend(mods: ModEl*): ModEl            = inContext(_.amend(mods: _*))
+  def amend(mods: ModEl*): ModEl = inContext(_.amend(mods: _*))
 
   def ownerMod(fn: Owner => ModEl): ModEl = {
     onMountCallback { ctx => ctx.thisNode.amend(fn(ctx.owner)) }
   }
+
 }
