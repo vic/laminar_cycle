@@ -2,37 +2,29 @@ package cycle.core
 
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement
-import cycle.core
 
-private[cycle] trait Core
-  extends Devices with Bijection with Helper
+private[cycle] trait Core extends Devices with Bijection with Helper
 
 private[core] object Devices extends Devices
 private[core] trait Devices {
-  import Helper.ModEl
+  import Helper.{ModEl, Binds}
 
   type Tag[T] = izumi.reflect.Tag[T]
   type Has[T] = zio.Has[T]
 
-  trait User[-Devices <: Has[_]] { self =>
-    def apply(devices: Devices): ModEl
-  }
+  trait UserFn[-Devices <: Has[_], Ret] extends (Devices => Ret)
+  type User[-Devices <: Has[_]] = UserFn[Devices, ModEl]
 
-  implicit def userFromFunction[Devices <: Has[_]](
-      fun: Devices => ModEl
-  ): User[Devices] =
-    new User[Devices] {
-      override def apply(devices: Devices): ModEl = fun(devices)
-    }
+  trait CycleFn[+Devices <: Has[_], Ret] extends (User[Devices] => Ret)
+  type Cycle[+Devices <: Has[_]] = CycleFn[Devices, ModEl]
 
-  trait Cycle[+Devices <: Has[_]] {
-    def apply(user: User[Devices]): ModEl
-  }
+  trait Driver[+Devices <: Has[_]] extends (() => (Binds, Devices))
 
-  implicit def cycleFromFunction[Devices <: Has[_]](
-      fun: User[Devices] => ModEl
-  ): Cycle[Devices] = new Cycle[Devices] {
-    def apply(user: User[Devices]): ModEl = fun(user)
+  implicit def driverToCycle[Devices <: Has[_]](
+      driver: Driver[Devices]
+  ): Cycle[Devices] = { user =>
+    val (binder, devices) = driver()
+    cycle.amend(binder, user(devices))
   }
 
   type In[T]  = Has[EventStream[T]]
@@ -102,28 +94,6 @@ private[core] trait Devices {
 
 }
 
-private[core] object Combine {
-  import Devices._
-
-  import zio.Has
-
-  implicit class CyclePlus[T, D <: Has[T]](val self: Cycle[D]) extends AnyVal {
-    def ++[A: Tag, B: Tag](other: Cycle[Has[B]])(ev: Has.MustHave[D, A]): Cycle[Has[A] with Has[B]] = {
-      cyclePlus[A, B](self.asInstanceOf[Cycle[Has[A]]], other)
-    }
-  }
-
-  def cyclePlus[A: Tag, B: Tag](aCycle: Cycle[Has[A]], bCycle: Cycle[Has[B]]): Cycle[Has[A] with Has[B]] = {
-    abUser =>
-      aCycle { aDevices =>
-        bCycle { bDevices =>
-          abUser(aDevices ++ bDevices)
-        }
-      }
-  }
-
-}
-
 private[core] trait Bijection {
   import Devices._
 
@@ -180,8 +150,10 @@ private[core] trait Bijection {
 private[core] object Helper extends Helper
 private[core] trait Helper {
   type ModEl = Mod[Element]
+  type Binds = Seq[Binder[Element]]
 
-  def amend(mods: ModEl*): ModEl = inContext(_.amend(mods: _*))
+  def binds(binds: Binder[Element]*): Binds = binds
+  def amend(mods: ModEl*): ModEl            = inContext(_.amend(mods: _*))
 
   def ownerMod(fn: Owner => ModEl): ModEl = {
     onMountCallback { ctx => ctx.thisNode.amend(fn(ctx.owner)) }
