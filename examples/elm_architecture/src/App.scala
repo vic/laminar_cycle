@@ -53,9 +53,8 @@ object Example {
     }
 
   def performEffect(
-      effect: Effect,
-      state: State
-  ): EventStream[(State, Option[Intent])] = effect match {
+      effect: Effect
+  ): EventStream[Intent] = effect match {
     case WaitForSample(since, lastSample) =>
       EventStream
         .fromValue(lastSample.map(_.value).getOrElse(0), emitOnce = true)
@@ -64,15 +63,15 @@ object Example {
           Random.nextInt(10000) match {
             case value if value <= min =>
               // Recursive effectful action
-              state -> Some(WaitForSample(since, lastSample))
+              WaitForSample(since, lastSample)
             case value =>
               // We could return a Right(state) or
               // perform another action (a pure one in this case)
-              state -> Some(AppendSample(since, Instant.now, value))
+              AppendSample(since, Instant.now, value)
           }
         }
     case _ =>
-      EventStream.fromValue(state -> None, emitOnce = true)
+      EventStream.empty
   }
 
   val tea = TEA[State, Intent, Action, Effect](

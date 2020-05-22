@@ -8,7 +8,7 @@ case class TEA[State, Action, Pure <: Action, Effect <: Action](
     selectPure: EventStream[Action] => EventStream[Pure],
     selectEffect: EventStream[Action] => EventStream[Effect],
     performPure: (Pure, State) => (State, Option[Action]),
-    performEffect: (Effect, State) => EventStream[(State, Option[Action])]
+    performEffect: Effect => EventStream[Action]
 )
 object TEA {
 
@@ -26,13 +26,13 @@ object TEA {
 
     val fromPure =
       pures.withCurrentValueOf(state).map2(performPure)
-    val fromEffect =
-      effects.withCurrentValueOf(state).map2(performEffect).flatten
+    val fromEffect = effects.flatMap(performEffect)
 
-    val updated = EventStream.merge(fromPure, fromEffect)
-
-    val newStates  = updated.map(_._1)
-    val newActions = updated.map(_._2).collect { case Some(action) => action }
+    val newStates = fromPure.map(_._1)
+    val newActions = EventStream.merge(
+      fromPure.map(_._2).collect { case Some(action) => action },
+      fromEffect
+    )
 
     Driver(
       state ++ actions,
