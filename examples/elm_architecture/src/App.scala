@@ -73,11 +73,15 @@ object Example {
       EventStream.empty
   }
 
-  val tea = TEA[State, Intent, Action, Effect](
-    initialState,
-    performAction _,
-    performEffect _
-  )
+  val tea: Driver[(EMO[State], EIO[Intent])] =
+    TEA[State, Intent, Action, Effect](
+      EMO[State](initialState),
+      EIO[Intent],
+      _.collect[Action] { case x: Action => x },
+      _.collect[Effect] { case x: Effect => x },
+      performAction _,
+      performEffect _
+    )
 
   def main: Div = {
     div(

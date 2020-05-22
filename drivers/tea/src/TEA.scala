@@ -7,25 +7,6 @@ object TEA {
   type Devices[State, Action] = (EMO[State], EIO[Action])
 
   def apply[State, Action, Pure <: Action, Effect <: Action](
-      initialState: => State,
-      performPure: (Pure, State) => (State, Option[Action]),
-      performEffect: Effect => EventStream[Action]
-  ): Driver[Devices[State, Action]] = {
-    apply(
-      EMO[State](initialState),
-      EIO[Action],
-      _.collect[Pure] {
-        case x: Pure @unchecked if x.isInstanceOf[Pure] => x
-      },
-      _.collect[Effect] {
-        case x: Effect @unchecked if x.isInstanceOf[Effect] => x
-      },
-      performPure,
-      performEffect
-    )
-  }
-
-  def apply[State, Action, Pure <: Action, Effect <: Action](
       state: EMO[State],
       actions: EIO[Action],
       selectPure: EventStream[Action] => EventStream[Pure],
