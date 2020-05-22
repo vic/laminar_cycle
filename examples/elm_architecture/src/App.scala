@@ -84,7 +84,7 @@ object Example {
 
   def main: Div = {
     div(
-      tea { io => view(io: Mem[State], io: Out[Intent]) }
+      tea { case (state, actions) => view(state, actions) }
     )
   }
 

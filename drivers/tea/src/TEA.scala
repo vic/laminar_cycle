@@ -12,14 +12,16 @@ case class TEA[State, Action, Pure <: Action, Effect <: Action](
 )
 object TEA {
 
+  type Devices[State, Action] = (EMO[State], EIO[Action])
+
   implicit def driver[
-      State: Tag,
-      Action: Tag,
-      Pure <: Action: Tag,
-      Effect <: Action: Tag
+      State,
+      Action,
+      Pure <: Action,
+      Effect <: Action
   ](
       tea: TEA[State, Action, Pure, Effect]
-  ): Driver[EMO[State] with EIO[Action]] = {
+  ): Driver[Devices[State, Action]] = {
     import tea._
     val pures   = actions.compose(selectPure)
     val effects = actions.compose(selectEffect)
@@ -35,7 +37,7 @@ object TEA {
     )
 
     Driver(
-      state ++ actions,
+      (state, actions),
       newStates --> state,
       newActions --> actions
     )

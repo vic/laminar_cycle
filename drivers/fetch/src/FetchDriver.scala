@@ -14,6 +14,7 @@ object fetch {
     val reqRes = devices.flatMap(req =>
       EventStream.fromFuture {
         Fetch.fetch(req.input, req.init).toFuture
+
       }.map(req -> _)
     )
     Driver(devices, reqRes --> devices)

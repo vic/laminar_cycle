@@ -7,7 +7,7 @@ case class zioUnsafeRun[R, E, A](runtime: Runtime[R])
 object zioUnsafeRun {
 
   type InfallibleIO[R, A] = CIO[A, URIO[R, A]]
-  implicit def cycleInfallible[R: Tag, A: Tag](
+  implicit def cycleInfallible[R, A](
       zura: zioUnsafeRun[R, Nothing, A]
   ): Cycle[InfallibleIO[R, A]] = { user =>
     import zura._
@@ -24,7 +24,7 @@ object zioUnsafeRun {
   }
 
   type EitherIO[R, E, A] = CIO[Either[E, A], ZIO[R, E, A]]
-  implicit def cycleFallible[R: Tag, E: CanFail: Tag, A: Tag](
+  implicit def cycleFallible[R, E: CanFail, A](
       zura: zioUnsafeRun[R, E, A]
   ): Cycle[EitherIO[R, E, A]] = { user =>
     import zura._
@@ -41,7 +41,7 @@ object zioUnsafeRun {
   }
 
   type FutureIO[R, A] = CIO[A, RIO[R, A]]
-  implicit def cycleFuture[R: Tag, Throwable, A: Tag](
+  implicit def cycleFuture[R, Throwable, A](
       zura: zioUnsafeRun[R, Throwable, A]
   ): Cycle[FutureIO[R, A]] = { user =>
     import zura._

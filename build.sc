@@ -37,7 +37,7 @@ object cycle extends BaseModule with PublishModule {
   def publishVersion        = T { meta.publishVersion }
   def pomSettings           = T { meta.pomSettings }
   override def ivyDeps =
-    super.ivyDeps() ++ Agg(meta.deps.laminar, meta.deps.zio)
+    super.ivyDeps() ++ Agg(meta.deps.laminar)
 }
 
 object drivers extends Module {
