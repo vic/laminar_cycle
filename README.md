@@ -219,89 +219,44 @@ A [Driver][cycle-driver] is the Cycle-way to interpret effects and
 interact with the outside world.
 
 
-In Laminar, Drivers normally look like:
+In Laminar, Drivers are couple of Devices and Binders.
+
+Devices are things like `CIO[I, O]`, `EMO[T]`, etc, that provide
+read/write streams outside the Driver.
+
+Binders are Laminar's `Binder[Element]` that provide a way to start
+and interrupt dynamic subscriptions in order to keep Laminar's safe-memory
+and glitch-free guarantees.
+
+The following is the full source code for the [DOM Fetch][fetch-driver-source]
+included in this library:
 
 ```scala
-object FooDriver {
- 
-  // The Config type can be whatever context your driver needs
-  // in order to work properly. Some drivers need no config at all.
-  case class Config(debug: Boolean = false)
+import com.raquo.laminar.api.L._
+import org.scalajs.dom.experimental._
 
-  // The type of all possible inputs to this driver.
-  sealed trait Input
-  case object Foo extends Input
-  case object Moo extends Input
- 
-  // The type of all possible outputs of this driver.
-  sealed trait Output
-  case object Bar extends Output
-  case object Baz extends Output
+object fetch {
+  final case class Request(input: RequestInfo, init: RequestInit = null)
 
-  // The type of IO devices as seen from the User perspective.
-  // eg, Users of this driver, take our Output as their input and our Input as their output type.
-  type UserIO = CIO[Output, Input]
+  // The Devices as seen from this driver's user perspective.
+  type FetchIO = CIO[(Request, Response), Request]
 
-  // This is the driver constructor, you can name this function whatever you like
-  // and have several of them. If you have a config object, curry it.
-  def apply(config: Config): Cycle[UserIO, ModEl] = { user: User[UserIO] =>
-  
-    // Here we create a cyclic pair of IO streams. Conveniently aliases as PIO[I, O]
-    // pio is an object that holds four streams:
-    //  in[Input](pio) => EventStream[Input] ; out[Output](pio) => WriteBus[Output]
-    //  in[Output](pio) => EventStream[Output] ; out[Input](pio) => WriteBus[Input]
-    val pio = PIO[Input, Output]
-
-    val outputs: EventStream[Output] = pio.flatMap { input =>
-       // Produce a new Output stream as the result of sensing an Input
-       EventStream.fromValue(perform(input), emitOnce = true)
-    }
-  
-    amend(
-       outputs --> pio, // Send all produced Outputs to the in[Output] port of `pio`
-       user(pio) // Call the user function, providing pio as `UserIO`
+  def driver: Driver[FetchIO] = {
+    val devices = PIO[Request, (Request, Response)]
+    val reqRes = devices.flatMap(req =>
+      EventStream.fromFuture {
+        Fetch.fetch(req.input, req.init).toFuture
+      }.map(req -> _)
     )
+    Driver(devices, reqRes --> devices)
   }
- 
-  // Upon receiving an Input, we have to produce an Output
-  private def perform(input: Input): Output = input match {
-    case Foo => Bar
-    case Moo => Baz
-  }
-
 }
 ```
 
-Drivers are used in the following way:
+When used inside an element, Drivers provide their IO devices to the block
+given to them and the binders set up dynamic subscriptions to start/stop when the
+parent element is mounted/unmounted from UI.
 
-```scala
-import FooDriver._
-val ui = div(
-  FooDriver(config = Config) { foo: FooDriver.UserIO =>
-    val receivedResponse: EventStream[String] = foo.map { 
-      case Bar => "You pressed Foo"
-      case Baz => "You pressed Moo"
-    }
-
-    val lastResponse: Signal[String] = receivedResponse.startWith("Nothing yet, click the button!")
-
-    div(
-       child <-- lastResponse,
-       button(
-         "Produce Foo request for driver",
-         onClick.mapTo(Foo) --> foo
-       ),
-       button(
-         "Produce Moo request for driver",
-         onClick.mapTo(Moo) --> foo
-       )
-     ) 
-  }
-)
-```
-
-Of course not all drivers are like this, some could provide only an input-device to their users,
-other might also want to provide more than just an `InOut`.
 
 ### Available Drivers
 
