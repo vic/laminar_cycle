@@ -56,7 +56,8 @@ object drivers extends Module {
       zio,
       topic,
       combine,
-      state
+      state,
+      tea
     )
 
     def mdocProperties = T {
@@ -87,6 +88,8 @@ object drivers extends Module {
 
   object state extends Driver
 
+  object tea extends Driver
+
   object combine extends Driver
 
 }
@@ -99,6 +102,9 @@ object examples extends Module {
 
   object onion_state   extends Example
   object cycle_counter extends Example
+  object elm_architecture extends Example {
+    override def ivyDeps = super.ivyDeps() ++ Seq(ivy"org.scala-js::scalajs-java-time::1.0.0")
+  }
   object swapi_driver  extends Example
 
 }

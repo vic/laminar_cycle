@@ -46,7 +46,6 @@ private[core] trait Core {
 private[core] object Devices extends Devices
 private[core] trait Devices {
   import Core._
-  import Helper._
 
   type In[T]  = Has[EventStream[T]]
   type Out[T] = Has[WriteBus[T]]

@@ -11,7 +11,7 @@ package object cycle extends cycle.core.API {
     }
   }
 
-  implicit class DriverPlus[A <: Has[A]](val aDriver: Driver[A])
+  implicit class DriverPlus[A <: Has[A]](private val aDriver: Driver[A])
       extends AnyVal {
     def ++[B <: Has[_]](
         bDriver: Driver[B]

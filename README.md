@@ -320,6 +320,13 @@ Individual Drivers:
   This driver allows you to have State-layers. See the [Onion] example.
   This way sub-components can have an inward view, just a layer of the outer 
   bigger state and their updates also get propagated outwards.
+  
+* [TEA][tea-driver-javadoc] ([source][tea-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::tea-driver::VERSION`
+
+  A simple driver that follows The Elm Architecture for updating
+  a current state with both: Pure and Effectful actions.
+
 
 * [TopicDriver][topic-driver-javadoc] ([source][topic-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::topic-driver::VERSION`
@@ -354,6 +361,10 @@ Individual Drivers:
 * [Onion State] ([source][onion-source])
 
   Shows basic usage of the State driver in an Onion-layered app.
+  
+* [ELM] ([source][elm-source])
+
+  Sample using the [TEA][tea-driver-source] to implement a temperature sampler.
 
 * [SWAPIDriver] ([source][swapi-driver-source])
 
@@ -383,6 +394,9 @@ Individual Drivers:
 [Onion State]: https://vic.github.io/laminar_cycle/examples/onion_state/src/index.html
 [onion-source]: examples/onion_state/src
 
+[ELM]: https://vic.github.io/laminar_cycle/examples/elm_architecture/src/index.html
+[elm-source]: examples/elm_architecture/src
+
 [SWAPI]: https://swapi.dev/
 [SWAPIDriver]: https://vic.github.io/laminar_cycle/examples/swapi_driver/src/index.html
 [swapi-driver-source]: examples/swapi_driver/src
@@ -395,6 +409,9 @@ Individual Drivers:
 
 [state-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/state/docJar/dest/javadoc/index.html
 [state-driver-source]: drivers/state/src
+
+[tea-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/tea/docJar/dest/javadoc/index.html
+[tea-driver-source]: drivers/tea/src
 
 [topic-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/topic/docJar/dest/javadoc/index.html
 [topic-driver-source]: drivers/topic/src
