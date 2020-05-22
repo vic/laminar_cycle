@@ -1,3 +1,4 @@
+// -*- scala -*-
 import mill._, scalajslib._, scalalib._, publish._
 
 object meta {
@@ -55,7 +56,6 @@ object drivers extends Module {
       fetch,
       zio,
       topic,
-      combine,
       state,
       tea
     )
@@ -89,8 +89,6 @@ object drivers extends Module {
   object state extends Driver
 
   object tea extends Driver
-
-  object combine extends Driver
 
 }
 

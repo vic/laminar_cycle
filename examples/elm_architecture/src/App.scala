@@ -74,10 +74,7 @@ object Example {
   }
 
   val tea = TEA[State, Intent, Action, Effect](
-    EMO[State](initialState),
-    EIO[Intent],
-    selectPure = _.collect[Action] { case a: Action   => a },
-    selectEffect = _.collect[Effect] { case e: Effect => e },
+    initialState,
     performAction _,
     performEffect _
   )

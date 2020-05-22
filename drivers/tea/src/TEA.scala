@@ -2,27 +2,37 @@ package cycle
 
 import com.raquo.laminar.api.L._
 
-case class TEA[State, Action, Pure <: Action, Effect <: Action](
-    state: EMO[State],
-    actions: EIO[Action],
-    selectPure: EventStream[Action] => EventStream[Pure],
-    selectEffect: EventStream[Action] => EventStream[Effect],
-    performPure: (Pure, State) => (State, Option[Action]),
-    performEffect: Effect => EventStream[Action]
-)
 object TEA {
 
   type Devices[State, Action] = (EMO[State], EIO[Action])
 
-  implicit def driver[
-      State,
-      Action,
-      Pure <: Action,
-      Effect <: Action
-  ](
-      tea: TEA[State, Action, Pure, Effect]
+  def apply[State, Action, Pure <: Action, Effect <: Action](
+      initialState: => State,
+      performPure: (Pure, State) => (State, Option[Action]),
+      performEffect: Effect => EventStream[Action]
   ): Driver[Devices[State, Action]] = {
-    import tea._
+    apply(
+      EMO[State](initialState),
+      EIO[Action],
+      _.collect[Pure] {
+        case x: Pure @unchecked if x.isInstanceOf[Pure] => x
+      },
+      _.collect[Effect] {
+        case x: Effect @unchecked if x.isInstanceOf[Effect] => x
+      },
+      performPure,
+      performEffect
+    )
+  }
+
+  def apply[State, Action, Pure <: Action, Effect <: Action](
+      state: EMO[State],
+      actions: EIO[Action],
+      selectPure: EventStream[Action] => EventStream[Pure],
+      selectEffect: EventStream[Action] => EventStream[Effect],
+      performPure: (Pure, State) => (State, Option[Action]),
+      performEffect: Effect => EventStream[Action]
+  ): Driver[Devices[State, Action]] = {
     val pures   = actions.compose(selectPure)
     val effects = actions.compose(selectEffect)
 

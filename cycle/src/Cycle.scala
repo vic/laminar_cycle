@@ -14,12 +14,8 @@ private[core] trait Core {
   trait CycleFn[+Devices, Ret] extends (User[Devices] => Ret)
   type Cycle[+Devices] = CycleFn[Devices, ModEl]
 
-  sealed trait Driver[+Devices] {
-    val devices: Devices
-    val binds: Binds
-
-    def cycle: Cycle[Devices] = { user => amend(binds, user(devices)) }
-
+  final class Driver[+Devices](val devices: Devices, val binds: Binds) {
+    def cycle: Cycle[Devices]             = { user => amend(binds, user(devices)) }
     def apply(user: User[Devices]): ModEl = cycle(user)
     def toTuple: (Devices, Binds)         = devices -> binds
   }
@@ -28,13 +24,10 @@ private[core] trait Core {
     def apply[Devices](
         devices: Devices,
         binds: Binder[Element]*
-    ): Driver[Devices] = {
-      val (aDevices, aBinds) = (devices, binds)
-      new Driver[Devices] {
-        val devices = aDevices
-        val binds   = aBinds
-      }
-    }
+    ): Driver[Devices] = new Driver(devices, binds)
+
+    def unapply[Devices](driver: Driver[Devices]): Option[(Devices, Binds)] =
+      Some(driver.devices -> driver.binds)
   }
 
 }
