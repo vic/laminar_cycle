@@ -23,13 +23,13 @@ object Example {
 
   def initialState: State = State(None, Nil)
 
-  trait Intent
-  trait Action      extends Intent
-  case object Probe extends Action
+  sealed trait Intent
+  sealed trait Action extends Intent
+  case object Probe   extends Action
   case class AppendSample(since: Instant, sampledAt: Instant, value: Int)
       extends Action
 
-  trait Effect extends Intent
+  sealed trait Effect extends Intent
   case class WaitForSample(since: Instant, lastSample: Option[Sample])
       extends Effect
 
@@ -65,8 +65,7 @@ object Example {
               // Recursive effectful action
               WaitForSample(since, lastSample)
             case value =>
-              // We could return a Right(state) or
-              // perform another action (a pure one in this case)
+              // Finish with a pure action
               AppendSample(since, Instant.now, value)
           }
         }
