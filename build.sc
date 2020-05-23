@@ -25,6 +25,7 @@ object meta {
     val laminar    = ivy"com.raquo::laminar::${laminarVersion}"
     val zio        = ivy"dev.zio::zio::${zioVersion}"
     val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
+    val javaTime   = ivy"io.github.cquiroz::scala-java-time::2.0.0"
   }
 }
 
@@ -81,7 +82,8 @@ object drivers extends Module {
   object fetch extends Driver
 
   object zio extends Driver {
-    override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.zioStreams)
+    override def ivyDeps = super.ivyDeps() ++
+      Agg(meta.deps.zioStreams, meta.deps.javaTime)
   }
 
   object topic extends Driver
@@ -101,8 +103,9 @@ object examples extends Module {
   object onion_state   extends Example
   object cycle_counter extends Example
   object elm_architecture extends Example {
-    override def ivyDeps = super.ivyDeps() ++ Seq(ivy"org.scala-js::scalajs-java-time::1.0.0")
+    override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
   object swapi_driver  extends Example
+  object zio_effects  extends Example
 
 }

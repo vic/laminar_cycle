@@ -3,6 +3,29 @@ package cycle
 import com.raquo.laminar.api.L._
 import zio.{CanFail, Runtime, ZIO, URIO, RIO}
 
+class ZDriver[R, E, +Devices](
+    val devices: Devices,
+    val binds: Binds
+) extends DriverFn[Devices, ZIO[R, E, ModEl]] {
+  override def cycle: CycleFn[Devices, ZIO[R, E, ModEl]] = { user =>
+    user(devices).map(amend(binds, _))
+  }
+}
+
+object ZDriver {
+  def apply[R, E, Devices](
+      devices: Devices,
+      binds: Binder[Element]*
+  ): ZDriver[R, E, Devices] = {
+    new ZDriver(devices, binds)
+  }
+
+  implicit def fromDriver[R, E, D](d: Driver[D]): ZDriver[R, E, D] = {
+    val (devices, binds) = d.toTuple
+    ZDriver[R, E, D](devices, binds: _*)
+  }
+}
+
 case class zioUnsafeRun[R, E, A](runtime: Runtime[R])
 object zioUnsafeRun {
 

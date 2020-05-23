@@ -11,13 +11,22 @@ private[core] trait Core {
   trait UserFn[-Devices, Ret] extends (Devices => Ret)
   type User[-Devices] = UserFn[Devices, ModEl]
 
-  trait CycleFn[+Devices, Ret] extends (User[Devices] => Ret)
+  trait CycleFn[+Devices, Ret] extends (UserFn[Devices, Ret] => Ret)
   type Cycle[+Devices] = CycleFn[Devices, ModEl]
 
-  final class Driver[+Devices](val devices: Devices, val binds: Binds) {
-    def cycle: Cycle[Devices]             = { user => amend(binds, user(devices)) }
-    def apply(user: User[Devices]): ModEl = cycle(user)
-    def toTuple: (Devices, Binds)         = devices -> binds
+  trait DriverFn[+Devices, Ret] {
+    val devices: Devices
+    val binds: Binds
+    def cycle: CycleFn[Devices, Ret]
+    def apply(user: UserFn[Devices, Ret]): Ret = cycle(user)
+    def toTuple: (Devices, Binds)              = devices -> binds
+  }
+
+  final class Driver[+Devices](val devices: Devices, val binds: Binds)
+      extends DriverFn[Devices, ModEl] {
+    override def cycle: CycleFn[Devices, ModEl] = { user =>
+      amend(binds, user(devices))
+    }
   }
 
   object Driver {
@@ -25,9 +34,6 @@ private[core] trait Core {
         devices: Devices,
         binds: Binder[Element]*
     ): Driver[Devices] = new Driver(devices, binds)
-
-    def unapply[Devices](driver: Driver[Devices]): Option[(Devices, Binds)] =
-      Some(driver.devices -> driver.binds)
   }
 
 }
@@ -68,6 +74,18 @@ private[core] trait Devices {
   type MIO[M, I, O]      = MemInOut[M, I, O]
 
   type CIO[I, O] = InOut[I, O]
+
+  object Mem {
+    def apply[M](m: Signal[M]): Mem[M] = Devices(m, None, None)
+  }
+
+  object In {
+    def apply[I](i: EventStream[I]): In[I] = Devices(None, i, None)
+  }
+
+  object Out {
+    def apply[O](o: WriteBus[O]): Out[O] = Devices(None, None, o)
+  }
 
   object CIO {
     def apply[I, O](i: EventStream[I], o: WriteBus[O]): CIO[I, O] =
