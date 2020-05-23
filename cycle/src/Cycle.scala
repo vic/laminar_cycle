@@ -33,9 +33,29 @@ private[core] trait Core {
 }
 
 private[core] trait Devices {
-  type Mem[T] = (Signal[T], _, _)
-  type In[T]  = (_, EventStream[T], _)
-  type Out[T] = (_, _, WriteBus[T])
+
+  class Devices[M, I, O](
+      private val memDevice: M,
+      private val inDevice: I,
+      private val outDevice: O
+  ) {
+    def in[T](implicit ev: I <:< EventStream[T]): EventStream[T] = inDevice
+    def out[T](implicit ev: O <:< WriteBus[T]): WriteBus[T]      = outDevice
+    def mem[T](implicit ev: M <:< Signal[T]): Signal[T]          = memDevice
+  }
+
+  object Devices {
+    def apply[M, I, O](m: M, i: I, o: O): Devices[M, I, O] =
+      new Devices(m, i, o)
+
+    implicit def mem[T](device: Mem[T]): Signal[T]    = device.mem
+    implicit def in[T](device: In[T]): EventStream[T] = device.in
+    implicit def out[T](device: Out[T]): WriteBus[T]  = device.out
+  }
+
+  type Mem[T] = Devices[Signal[T], _, _]
+  type In[T]  = Devices[_, EventStream[T], _]
+  type Out[T] = Devices[_, _, WriteBus[T]]
 
   type InOut[I, O]  = In[I] with Out[O]
   type MemOut[M, O] = Mem[M] with Out[O]
@@ -48,19 +68,20 @@ private[core] trait Devices {
   type MIO[M, I, O]      = MemInOut[M, I, O]
 
   type CIO[I, O] = InOut[I, O]
-  type PIO[I, O] = (InOut[I, O], InOut[O, I])
 
-  implicit def mem[T](mem: Mem[T]): Signal[T]   = mem._1
-  implicit def in[T](in: In[T]): EventStream[T] = in._2
-  implicit def out[T](out: Out[T]): WriteBus[T] = out._3
+  object CIO {
+    def apply[I, O](i: EventStream[I], o: WriteBus[O]): CIO[I, O] =
+      Devices(None, i, o)
+  }
 
   object EIO {
-    implicit def apply[T](b: EventBus[T]): EIO[T] = (None, b.events, b.writer)
-    def apply[T]: EIO[T]                          = new EventBus[T]
+    implicit def apply[T](b: EventBus[T]): EIO[T] =
+      CIO[T, T](b.events, b.writer)
+    def apply[T]: EIO[T] = new EventBus[T]
   }
 
   object EMO {
-    def apply[T](m: Signal[T], o: WriteBus[T]): EMO[T] = (m, None, o)
+    def apply[T](m: Signal[T], o: WriteBus[T]): EMO[T] = Devices(m, None, o)
     def apply[M](initial: => M): EMO[M]                = MIO(initial)
   }
 
@@ -69,7 +90,7 @@ private[core] trait Devices {
         m: Signal[M],
         i: EventStream[I],
         o: WriteBus[O]
-    ): MIO[M, I, O] = (m, i, o)
+    ): MIO[M, I, O] = Devices(m, i, o)
 
     def apply[M](initial: => M): MIO[M, M, M] = MIO[M, M](_.startWith(initial))
 
@@ -82,18 +103,21 @@ private[core] trait Devices {
     }
   }
 
-  object PIO {
-    def apply[I, O](ib: EventBus[I], ob: EventBus[O]): PIO[I, O] =
-      ((None, ib.events, ob.writer), (None, ob.events, ib.writer))
-    def apply[I, O]: PIO[I, O] = PIO(new EventBus[I], new EventBus[O])
+  class PairedIO[I, O](val io: CIO[I, O], val oi: CIO[O, I])
+  type PIO[I, O] = PairedIO[I, O]
+
+  object PairedIO {
+    implicit def io[I, O](pio: PIO[I, O]): CIO[I, O]       = pio.io
+    implicit def oi[I, O](pio: PIO[I, O]): CIO[O, I]       = pio.oi
+    implicit def in1[I, O](pio: PIO[I, O]): EventStream[I] = pio.io
+    implicit def out1[I, O](pio: PIO[I, O]): WriteBus[O]   = pio.io
   }
 
-  implicit def io[I, O](pio: PIO[I, O]): CIO[I, O]       = pio._1
-  implicit def in1[I, O](pio: PIO[I, O]): EventStream[I] = pio._1
-  implicit def out1[I, O](pio: PIO[I, O]): WriteBus[O]   = pio._1
-  implicit def oi[I, O](pio: PIO[I, O]): CIO[O, I]       = pio._2
-  //  implicit def oii[I](pio: PIO[_, I]): EventStream[I] = pio._2
-  //  implicit def oio[I](pio: PIO[I, _]): WriteBus[I]    = pio._2
+  object PIO {
+    def apply[I, O](ib: EventBus[I], ob: EventBus[O]): PIO[I, O] =
+      new PairedIO(CIO(ib.events, ob.writer), CIO(ob.events, ib.writer))
+    def apply[I, O]: PIO[I, O] = PIO(new EventBus[I], new EventBus[O])
+  }
 
 }
 
