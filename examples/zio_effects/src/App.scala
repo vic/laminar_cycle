@@ -1,20 +1,32 @@
 package example.zio_effects
 
+import java.time.DateTimeException
+import java.util.concurrent.TimeUnit
+
 import com.raquo.laminar.api.L._
 import cycle._
 import org.scalajs.dom
 import zio._
+import zio.duration._
 
 object Example {
 
   type ZD = ZDriver[ZEnv, Nothing, ZD.API]
 
-  def apply(): ZIO[Any, Nothing, Div] =
+  def apply() =
     for {
       _ <- ZIO.unit
+      names = new EventBus[String]
+      counter <- zio.clock.nanoTime.tap { time =>
+        ZIO.effectTotal {
+          println(time)
+          names.writer.onNext(time.toString)
+        }
+      }.repeat(Schedule.fixed(1 second)).forkDaemon
     } yield {
       div(
-        "HELLO ZIO"
+        "HELLO ZIO",
+        child.text <-- names.events
       )
     }
 
@@ -40,7 +52,10 @@ object Main extends zio.App {
   }
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
-    app.as(0)
-//  orElse ZIO.succeed(1)
+    app.as(0).tapCause { cause =>
+      ZIO.effectTotal {
+        println(cause.toString)
+      }
+    } // orElse ZIO.succeed(1)
 
 }
