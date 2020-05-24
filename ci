@@ -11,7 +11,7 @@ case "$1" in
  ;;
 
  serve)
-   python -m SimpleHTTPServer
+   npx servor . gh-pages/ 8080 --static --reload --browse
  ;;
 
  gh-pages)
