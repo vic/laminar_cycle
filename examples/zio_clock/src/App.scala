@@ -14,7 +14,7 @@ object ClockApp {
 
   val time: ZCycle[In[Instant]] = ZCycle[In[Instant]]
 
-  def apply(): ZIO[Clock, NoSuchElementException, ModEl] =
+  def apply(): ZIO[ZEnv, Nothing, ModEl] =
     for {
       timeQueue <- Queue.unbounded[Instant]
 
@@ -28,14 +28,11 @@ object ClockApp {
         .repeat(Schedule.fixed(1 second))
         .forkDaemon
 
-      // In Laminar.cycle, Drivers can perform effectful reads
-      // in this case, we want an input device: `In[Instant]` we can read from.
       timeDriver <- timeQueue.zDriveIn
+      view       <- viewTime.provideCustomLayer(time.cycleLayer(timeDriver))
+    } yield amend(view, timeDriver.binds)
 
-      view <- viewTime.provide(Has(timeDriver))
-    } yield view
-
-  def viewTime: ZIO[time.HasDriver, Nothing, ModEl] =
+  def viewTime: ZIO[time.HasCycle, Nothing, ModEl] =
     time { io =>
       div(
         "ZIO CLOCK: ",
@@ -54,8 +51,6 @@ object Main extends zio.App {
   }
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
-    app.as(0).tapCause { cause =>
-      UIO(dom.console.error(cause.toString))
-    } orElse ZIO.succeed(1)
+    app.as(0).tapCause { cause => UIO(dom.console.error(cause.toString)) }
 
 }

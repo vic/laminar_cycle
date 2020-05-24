@@ -12,13 +12,17 @@ object zioDriver {
   type BindEl = Binder[Base]
 
   class ZCycle[D: Tag] private[ZCycle] {
-    type Devices   = D
-    type Driver    = cycle.Driver[Devices]
-    type User      = cycle.User[Devices]
-    type HasDriver = zio.Has[Driver]
+    type Devices  = D
+    type Driver   = cycle.Driver[Devices]
+    type Cycle    = cycle.Cycle[Devices]
+    type User     = cycle.User[Devices]
+    type HasCycle = zio.Has[Cycle]
 
-    def apply[E](user: User): ZIO[HasDriver, E, ModEl] =
-      ZIO.access(_.get.apply(user))
+    def cycleLayer[R, E](driver: Driver): ZLayer[R, E, HasCycle] =
+      ZLayer.fromFunction(_ => { user: User => user(driver.devices) })
+
+    def apply[E](user: User): ZIO[HasCycle, E, ModEl] =
+      ZIO.access[HasCycle](_.get).map(_.apply(user))
   }
 
   object ZCycle {
