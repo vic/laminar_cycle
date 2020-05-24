@@ -30,7 +30,7 @@ object ClockApp {
 
       // In Laminar.cycle, Drivers can perform effectful reads
       // in this case, we want an input device: `In[Instant]` we can read from.
-      timeDriver: cycle.Driver[cycle.In[Instant]] <- timeQueue.zDriveIn
+      timeDriver: TimeDriver <- timeQueue.zDriveIn
 
       view <- viewTime.provide(Has(timeDriver))
     } yield view
@@ -39,7 +39,7 @@ object ClockApp {
   type TimeUser   = cycle.User[cycle.In[Instant]]
 
   def time(user: TimeUser): ZIO[Has[TimeDriver], Nothing, ModEl] =
-    ZIO.access((_: Has[TimeDriver]).get[TimeDriver]).map(_.apply(user))
+    ZIO.access(_.get.apply(user))
 
   def viewTime: ZIO[Has[TimeDriver], Nothing, ModEl] =
     time { io =>
