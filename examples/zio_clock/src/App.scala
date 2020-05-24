@@ -4,26 +4,27 @@ import com.raquo.laminar.api.L._
 import cycle.zioDriver._
 import org.scalajs.dom
 import zio._
+import zio.clock.Clock
 import zio.duration._
 
-object Example {
+object ClockApp {
 
-  def apply() =
+  def apply(): ZIO[Clock, NoSuchElementException, cycle.ModEl] =
     for {
-      nanos <- Queue.unbounded[Long]
+      nanosQueue <- Queue.unbounded[Long]
 
       _ <- zio.clock.nanoTime
-        .tap(nanos.offer(_))
+        .tap(nanosQueue.offer(_))
         .tap(v => UIO(dom.console.log("CLOCK", v.toString)))
         .tapCause(v => UIO(dom.console.error(v.prettyPrint)))
         .repeat(Schedule.fixed(1 second))
         .forkDaemon
 
-      nanosIn: cycle.Driver[cycle.In[Long]] <- nanos.asIn
-    } yield {
+      nanosDriver: cycle.Driver[cycle.In[Long]] <- nanosQueue.asIn
+    } yield nanosDriver { nanos =>
       div(
         "ZIO CLOCK: ",
-        nanosIn(child.text <-- _.map(_.toString))
+        code(child.text <-- nanos.map(_.toString))
       )
     }
 
@@ -32,9 +33,9 @@ object Example {
 object Main extends zio.App {
 
   val app = for {
-    el <- Example()
+    clock <- ClockApp()
   } yield {
-    render(dom.document.getElementById("app"), el)
+    render(dom.document.getElementById("app"), div(clock))
   }
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =

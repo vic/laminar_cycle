@@ -264,26 +264,28 @@ parent element is mounted/unmounted from UI.
 
 Individual Drivers:
 
-* [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
-  > Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
+###### [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
 
-  A cycle driver around `fetch` for executing HTTP requests.
+> Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
+
+A cycle driver around DOM's `Fetch API` for executing HTTP requests.
+
   
-* [StateDriver][state-driver-javadoc] ([source][state-driver-source])
+###### [StateDriver][state-driver-javadoc] ([source][state-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::state-driver::VERSION`
 
   This driver allows you to have State-layers. See the [Onion] example.
   This way sub-components can have an inward view, just a layer of the outer 
   bigger state and their updates also get propagated outwards.
   
-* [TEA][tea-driver-javadoc] ([source][tea-driver-source])
+###### [TEA][tea-driver-javadoc] ([source][tea-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::tea-driver::VERSION`
 
   A simple driver that follows The Elm Architecture for updating
   a current state with both: Pure and Effectful actions.
 
 
-* [TopicDriver][topic-driver-javadoc] ([source][topic-driver-source])
+###### [TopicDriver][topic-driver-javadoc] ([source][topic-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::topic-driver::VERSION`
 
   A Pub/Sub driver that allows any component in the system to communicate
@@ -292,36 +294,36 @@ Individual Drivers:
   You can use this to broadcast events across the whole application.
   
 
-* [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
+###### [ZIODriver][zio-driver-javadoc] ([source][zio-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::zio-driver::VERSION`
 
-  - `ZIODriver.unsafeEither` runs fallible-effects into `Either[E,A]` values.
-  - `ZIODriver.unsafeFuture` runs incoming effects with `runtime.unsafeRunToFuture`
-  
-* [CombineDriver][combine-driver-javadoc] ([source][combine-driver-source])
-  > Artifact: `com.github.vic.laminar_cycle::combine-driver::VERSION`
-
-  A driver that can combine two other drivers by projecting their `CIO` streams.
+Provides conversions from `ZQueue` to Laminar's `EventStream` and `WriteBus`.
+Automatically manages subscriptions between zio and Laminar streams.
   
 
 ## Examples
 
-* [Counter] ([source][counter-source])
+###### [Counter] ([source][counter-source])
 
   Runnable implementation of the counter example on README.md.
   
   Shows basics of using `cycle.InOut` types, handling user actions to update 
   the current state and update a view based on it.
   
-* [Onion State] ([source][onion-source])
+###### [Onion State] ([source][onion-source])
 
   Shows basic usage of the State driver in an Onion-layered app.
   
-* [ELM] ([source][elm-source])
+###### [ELM] ([source][elm-source])
 
-  Sample using the [TEA][tea-driver-source] to implement a temperature sampler.
+  Sample using the [The Elm Architecture][tea-driver-source] to implement a sampler.
+  
+###### [ZIO Clock]  ([source][zio-clock-source])
 
-* [SWAPIDriver] ([source][swapi-driver-source])
+  Effectful ZIO application that renders a Queue of Clock's nanoSeconds inside a
+  Laminar view.
+
+###### [SWAPIDriver] ([source][swapi-driver-source])
 
   Search StartWars characters by name.
   
@@ -348,6 +350,9 @@ Individual Drivers:
 
 [Onion State]: https://vic.github.io/laminar_cycle/examples/onion_state/src/index.html
 [onion-source]: examples/onion_state/src
+
+[ZIO Clock]: https://vic.github.io/laminar_cycle/examples/zio_clock/src/index.html
+[zio-clock-source]: examples/zio_clock/src
 
 [ELM]: https://vic.github.io/laminar_cycle/examples/elm_architecture/src/index.html
 [elm-source]: examples/elm_architecture/src

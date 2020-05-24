@@ -106,6 +106,6 @@ object examples extends Module {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
   object swapi_driver  extends Example
-  object zio_effects  extends Example
+  object zio_clock  extends Example
 
 }
