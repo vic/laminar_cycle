@@ -11,27 +11,18 @@ object zioDriver {
 
   type BindEl = Binder[Base]
 
-  class ZIODriver[R, E, +Devices](
-      val devices: Devices,
-      val binds: Binds
-  ) extends DriverFn[Devices, ZIO[R, E, ModEl]] {
-    override def cycle: CycleFn[Devices, ZIO[R, E, ModEl]] = { user =>
-      user(devices).map(amend(binds, _))
-    }
+  class ZCycle[D: Tag] private[ZCycle] {
+    type Devices   = D
+    type Driver    = cycle.Driver[Devices]
+    type User      = cycle.User[Devices]
+    type HasDriver = zio.Has[Driver]
+
+    def apply[E](user: User): ZIO[HasDriver, E, ModEl] =
+      ZIO.access(_.get.apply(user))
   }
 
-  object ZIODriver {
-    def apply[R, E, Devices](
-        devices: Devices,
-        binds: Binder[Element]*
-    ): ZIODriver[R, E, Devices] = {
-      new ZIODriver(devices, binds)
-    }
-
-    implicit def fromDriver[R, E, D](d: Driver[D]): ZIODriver[R, E, D] = {
-      val (devices, binds) = d.toTuple
-      ZIODriver[R, E, D](devices, binds: _*)
-    }
+  object ZCycle {
+    def apply[Devices: Tag]: ZCycle[Devices] = new ZCycle[Devices]
   }
 
   implicit class StreamOps[R, E, O](private val stream: ZStream[R, E, O])

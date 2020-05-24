@@ -3,16 +3,16 @@ package example.zio_effects
 import java.time.Instant
 
 import com.raquo.laminar.api.L._
-import com.raquo.laminar.nodes.ReactiveHtmlElement
 import cycle._
 import cycle.zioDriver._
 import org.scalajs.dom
-import org.scalajs.dom.html
 import zio._
 import zio.clock.Clock
 import zio.duration._
 
 object ClockApp {
+
+  val time: ZCycle[In[Instant]] = ZCycle[In[Instant]]
 
   def apply(): ZIO[Clock, NoSuchElementException, ModEl] =
     for {
@@ -30,18 +30,12 @@ object ClockApp {
 
       // In Laminar.cycle, Drivers can perform effectful reads
       // in this case, we want an input device: `In[Instant]` we can read from.
-      timeDriver: TimeDriver <- timeQueue.zDriveIn
+      timeDriver <- timeQueue.zDriveIn
 
       view <- viewTime.provide(Has(timeDriver))
     } yield view
 
-  type TimeDriver = cycle.Driver[cycle.In[Instant]]
-  type TimeUser   = cycle.User[cycle.In[Instant]]
-
-  def time(user: TimeUser): ZIO[Has[TimeDriver], Nothing, ModEl] =
-    ZIO.access(_.get.apply(user))
-
-  def viewTime: ZIO[Has[TimeDriver], Nothing, ModEl] =
+  def viewTime: ZIO[time.HasDriver, Nothing, ModEl] =
     time { io =>
       div(
         "ZIO CLOCK: ",
