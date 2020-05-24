@@ -1,17 +1,17 @@
 package cycle
 
-import com.raquo.laminar.api.L
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement
 import com.raquo.laminar.nodes.ReactiveElement.Base
+import org.scalajs.dom
 import zio._
 import zio.stream._
 
-import org.scalajs.dom
-
 object zioDriver {
 
-  class ZDriver[R, E, +Devices](
+  type BindEl = Binder[Base]
+
+  class ZIODriver[R, E, +Devices](
       val devices: Devices,
       val binds: Binds
   ) extends DriverFn[Devices, ZIO[R, E, ModEl]] {
@@ -20,35 +20,38 @@ object zioDriver {
     }
   }
 
-  object ZDriver {
+  object ZIODriver {
     def apply[R, E, Devices](
         devices: Devices,
         binds: Binder[Element]*
-    ): ZDriver[R, E, Devices] = {
-      new ZDriver(devices, binds)
+    ): ZIODriver[R, E, Devices] = {
+      new ZIODriver(devices, binds)
     }
 
-    implicit def fromDriver[R, E, D](d: Driver[D]): ZDriver[R, E, D] = {
+    implicit def fromDriver[R, E, D](d: Driver[D]): ZIODriver[R, E, D] = {
       val (devices, binds) = d.toTuple
-      ZDriver[R, E, D](devices, binds: _*)
+      ZIODriver[R, E, D](devices, binds: _*)
     }
   }
 
   implicit class StreamOps[R, E, O](private val stream: ZStream[R, E, O])
       extends AnyVal {
 
-    def asIn =
+    def zDriveIn: ZIO[R, Nothing, Driver[In[O]]] =
+      toEventStream.map(t => Driver(In(t._1), t._2))
+
+    def toEventStream: ZIO[R, Nothing, (EventStream[O], BindEl)] =
       for {
         _ <- ZIO.unit
         bus = new EventBus[O]
         binder <- writeToBus(bus.writer)
       } yield {
-        Driver(In(bus.events), binder)
+        bus.events -> binder
       }
 
     def writeToBus(
         wb: WriteBus[O]
-    ): ZIO[R, Nothing, Binder[Base]] =
+    ): ZIO[R, Nothing, BindEl] =
       for {
         runtime <- ZIO.runtime[R]
         drain: URIO[R, Fiber.Runtime[E, Unit]] = stream
@@ -65,14 +68,13 @@ object zioDriver {
           var draining: Fiber.Runtime[E, Unit] = null
           runtime.unsafeRunAsync(drain) {
             case Exit.Failure(cause) =>
+              dom.console.error("Failed forking drain", cause.prettyPrint)
               throw cause.dieOption.getOrElse(new Exception(cause.prettyPrint))
             case Exit.Success(fiber: Fiber.Runtime[E, Unit]) =>
-//              dom.console.log("Fiber", fiber)
               draining = fiber
           }
           new Subscription(ctx.owner, cleanup = { () =>
-            if (draining != null)
-              runtime.unsafeRunAsync_(draining.interrupt)
+            if (draining != null) runtime.unsafeRunAsync_(draining.interrupt)
           })
         }
       )
@@ -83,41 +85,9 @@ object zioDriver {
       private val queue: ZQueue[RA, RB, EA, EB, A, B]
   ) extends AnyVal {
 
-    def asEIO(
-        implicit ev: A =:= B,
-        ev1: RA =:= RB
-    ): ZIO[RA with RB, NoSuchElementException, Driver[EIO[A]]] =
-      for {
-        (eventBus, binder) <- asEventBus
-      } yield {
-        Driver(EIO(eventBus), binder)
-      }
-
-    def asIn: ZIO[RB, NoSuchElementException, Driver[In[B]]] =
-      for {
-        (eventStream, binder) <- asEventStream
-      } yield {
-        Driver(In(eventStream), binder)
-      }
-
-    def asOut: ZIO[RA, NoSuchElementException, Driver[Out[A]]] =
-      for {
-        (writeBus, binder) <- asWriteBus
-      } yield {
-        Driver(Out(writeBus), binder)
-      }
-
-    def asCIO: ZIO[RA with RB, NoSuchElementException, Driver[CIO[B, A]]] =
-      for {
-        (in, inBinder)   <- asEventStream
-        (out, outBinder) <- asWriteBus
-      } yield {
-        Driver(CIO(in, out), inBinder, outBinder)
-      }
-
     def readFromEventStream(
         eb: EventStream[A]
-    ): ZIO[RA, Nothing, Binder[Base]] =
+    ): ZIO[RA, Nothing, BindEl] =
       for {
         runtime <- ZIO.runtime[RA]
       } yield Binder(
@@ -128,35 +98,24 @@ object zioDriver {
 
     def writeToBus(
         wb: WriteBus[B]
-    ): ZIO[RB, Nothing, Binder[Base]] =
+    ): ZIO[RB, Nothing, BindEl] =
       for {
         _ <- ZIO.unit
         stream = ZStream.fromQueue(queue)
         binder <- stream.writeToBus(wb)
       } yield binder
 
-    def asEventBus(
-        implicit ev: A =:= B,
-        ev3: RA =:= RB
-    ): ZIO[RA with RB, NoSuchElementException, (EventBus[A], Binder[Base])] =
+    def zDriveCIO: ZIO[RA with RB, Nothing, Driver[InOut[B, A]]] =
       for {
-        (in, inBinder)   <- asEventStream
-        (out, outBinder) <- asWriteBus
-        binder = Binder(
-          ReactiveElement.bindCallback(_: Element) { ctx =>
-            ctx.thisNode.amend(inBinder, outBinder)
-          }
-        )
-        eventBus = new EventBus[A] {
-          override val events: EventStream[A] = in.asInstanceOf[EventStream[A]]
-          override val writer: WriteBus[A]    = out
-        }
+        inDriver  <- zDriveIn
+        outDriver <- zDriveOut
       } yield {
-        eventBus -> binder
+        val devices = CIO(inDriver.devices.in, outDriver.devices.out)
+        val binders = inDriver.binds ++ outDriver.binds
+        Driver(devices, binders: _*)
       }
 
-    def asEventStream
-        : ZIO[RB, NoSuchElementException, (EventStream[B], Binder[Base])] =
+    def toEventStream: ZIO[RB, Nothing, (EventStream[B], BindEl)] =
       for {
         _ <- ZIO.unit
         bus = new EventBus[B]
@@ -165,7 +124,10 @@ object zioDriver {
         bus.events -> binder
       }
 
-    def asWriteBus: ZIO[RA, Nothing, (WriteBus[A], Binder[Base])] =
+    def zDriveIn: ZIO[RB, Nothing, Driver[In[B]]] =
+      toEventStream.map(t => Driver(In(t._1), t._2))
+
+    def toWriteBus: ZIO[RA, Nothing, (WriteBus[A], BindEl)] =
       for {
         _ <- ZIO.unit
         bus = new EventBus[A]
@@ -173,6 +135,58 @@ object zioDriver {
       } yield {
         bus.writer -> binder
       }
+
+    def zDriveOut: ZIO[RA, Nothing, Driver[Out[A]]] =
+      toWriteBus.map(t => Driver(Out(t._1), t._2))
+  }
+
+  implicit class EventStreamOps[A](private val eb: EventStream[A])
+      extends AnyVal {
+
+    def toZQueue(
+        capacity: Int = 16
+    ): ZIO[Any, Nothing, (Queue[A], BindEl)] =
+      for {
+        queue  <- ZQueue.bounded[A](capacity)
+        binder <- intoZQueue(queue)
+      } yield queue -> binder
+
+    def intoZQueue(queue: Queue[A]): ZIO[Any, Nothing, BindEl] =
+      queue.readFromEventStream(eb)
+
+    def toZStream(capacity: Int = 16): ZIO[
+      Any,
+      Nothing,
+      (ZStream[Any, Nothing, A], BindEl)
+    ] =
+      for {
+        queueAndBinder <- toZQueue(capacity)
+        (queue, binder) = queueAndBinder
+        stream          = ZStream.fromQueueWithShutdown(queue)
+      } yield stream -> binder
+
+  }
+
+  implicit class WriteBusOps[A](private val wb: WriteBus[A]) extends AnyVal {
+    def toZQueue(capacity: Int = 16) =
+      for {
+        queue  <- ZQueue.bounded[A](capacity)
+        binder <- intoZQueue(queue)
+      } yield queue -> binder
+
+    def intoZQueue(queue: Queue[A]): ZIO[Any, Nothing, BindEl] =
+      queue.writeToBus(wb)
+
+    def toZStream(capacity: Int = 16): ZIO[
+      Any,
+      Nothing,
+      (ZStream[Any, Nothing, A], BindEl)
+    ] =
+      for {
+        queueAndBinder <- toZQueue(capacity)
+        (queue, binder) = queueAndBinder
+        stream          = ZStream.fromQueueWithShutdown(queue)
+      } yield stream -> binder
   }
 
 }

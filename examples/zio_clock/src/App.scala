@@ -1,5 +1,7 @@
 package example.zio_effects
 
+import java.time.Instant
+
 import com.raquo.laminar.api.L._
 import cycle.zioDriver._
 import org.scalajs.dom
@@ -9,24 +11,29 @@ import zio.duration._
 
 object ClockApp {
 
-  def apply(): ZIO[Clock, NoSuchElementException, cycle.ModEl] =
+  def apply(): ZIO[Clock, NoSuchElementException, Div] =
     for {
-      nanosQueue <- Queue.unbounded[Long]
+      timeQueue <- Queue.unbounded[Instant]
 
-      _ <- zio.clock.nanoTime
-        .tap(nanosQueue.offer(_))
-        .tap(v => UIO(dom.console.log("CLOCK", v.toString)))
-        .tapCause(v => UIO(dom.console.error(v.prettyPrint)))
+      _ <- ZIO
+      // This could be zio.clock.currentDateTime but it wasn't working on my laptop
+      // because the JS runtime does not have an America/Mexico_City timezone.
+      // Anyways this is still a good example of ZIO fibers running in the background
+        .effect(Instant.now)
+        .tap(timeQueue.offer(_))
+        .tapCause { cause => UIO(dom.console.error(cause.toString)) }
         .repeat(Schedule.fixed(1 second))
         .forkDaemon
 
-      nanosDriver: cycle.Driver[cycle.In[Long]] <- nanosQueue.asIn
-    } yield nanosDriver { nanos =>
-      div(
-        "ZIO CLOCK: ",
-        code(child.text <-- nanos.map(_.toString))
-      )
-    }
+      // In Laminar.cycle, Drivers can perform effectful reads
+      // in this case, we want an input device: `In[Instant]` we can read from.
+      timeDriver: cycle.Driver[cycle.In[Instant]] <- timeQueue.zDriveIn
+    } yield div(
+      "ZIO CLOCK: ",
+      // When called with a block, the driver automatically subscribes to events
+      // from the ZQueue, the subscription is interrupted when unmounted.
+      timeDriver { timeIO => pre(child.text <-- timeIO.map(_.toString)) }
+    )
 
 }
 
