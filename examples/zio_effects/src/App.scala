@@ -1,46 +1,32 @@
 package example.zio_effects
 
-import java.time.DateTimeException
-import java.util.concurrent.TimeUnit
-
 import com.raquo.laminar.api.L._
-import cycle._
+import cycle.zioDriver._
 import org.scalajs.dom
 import zio._
 import zio.duration._
 
 object Example {
 
-  type ZD = ZDriver[ZEnv, Nothing, ZD.API]
-
   def apply() =
     for {
-      _ <- ZIO.unit
-      names = new EventBus[String]
-      counter <- zio.clock.nanoTime.tap { time =>
-        ZIO.effectTotal {
-          println(time)
-          names.writer.onNext(time.toString)
-        }
-      }.repeat(Schedule.fixed(1 second)).forkDaemon
+      nanos <- Queue.unbounded[Long]
+
+      _ <- zio.clock.nanoTime
+        .tap(nanos.offer(_))
+        .tap(v => UIO(dom.console.log("CLOCK", v.toString)))
+        .tapCause(v => UIO(dom.console.error(v.prettyPrint)))
+        .repeat(Schedule.fixed(1 second))
+        .forkDaemon
+
+      nanosIn <- nanos.asIn
     } yield {
       div(
-        "HELLO ZIO",
-        child.text <-- names.events
+        "ZIO CLOCK: ",
+        nanosIn(in => child.text <-- in.map(_.toString))
       )
     }
 
-}
-
-object ZD {
-  trait API {}
-  def apply[R, E]: ZIO[R, E, ZDriver[R, E, API]] =
-    for {
-      rt <- ZIO.runtime
-    } yield {
-      val api = new API {}
-      ZDriver(api)
-    }
 }
 
 object Main extends zio.App {
@@ -53,9 +39,7 @@ object Main extends zio.App {
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
     app.as(0).tapCause { cause =>
-      ZIO.effectTotal {
-        println(cause.toString)
-      }
-    } // orElse ZIO.succeed(1)
+      UIO(dom.console.error(cause.toString))
+    } orElse ZIO.succeed(1)
 
 }
