@@ -19,11 +19,11 @@ object Example {
         .repeat(Schedule.fixed(1 second))
         .forkDaemon
 
-      nanosIn <- nanos.asIn
+      nanosIn: cycle.Driver[cycle.In[Long]] <- nanos.asIn
     } yield {
       div(
         "ZIO CLOCK: ",
-        nanosIn(in => child.text <-- in.map(_.toString))
+        nanosIn(child.text <-- _.map(_.toString))
       )
     }
 
