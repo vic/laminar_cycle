@@ -7,11 +7,11 @@ export PATH=$HOME/bin:$PATH
 case "$1" in
 
  jitpack)
-   $0 mill -i __.publishM2Local
+   $0 mill __.publishM2Local
  ;;
 
- serve)
-   npx servor . gh-pages/ 8080 --static --reload --browse
+ servor)
+   npx servor ${2:-"gh-pages"} ${3:-"index.html"} 8888 --reload --browse
  ;;
 
  gh-pages)

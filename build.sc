@@ -26,6 +26,7 @@ object meta {
     val zio        = ivy"dev.zio::zio::${zioVersion}"
     val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
     val javaTime   = ivy"io.github.cquiroz::scala-java-time::2.0.0"
+    val urlDsl = ivy"be.doeraene::url-dsl::0.2.0"
   }
 }
 
@@ -44,7 +45,7 @@ object cycle extends BaseModule with PublishModule {
 
 object drivers extends Module {
 
-  trait Driver extends BaseModule with PublishModule {
+  sealed trait Driver extends BaseModule with PublishModule {
     def publishVersion        = T { meta.publishVersion }
     def pomSettings           = T { meta.pomSettings }
     override def moduleDeps   = super.moduleDeps ++ Seq(cycle)
@@ -96,7 +97,7 @@ object drivers extends Module {
 
 object examples extends Module {
 
-  trait Example extends BaseModule {
+  sealed trait Example extends BaseModule {
     override def moduleDeps = super.moduleDeps :+ drivers.all
   }
 
@@ -108,4 +109,9 @@ object examples extends Module {
   object swapi_driver  extends Example
   object zio_clock  extends Example
 
+  object route_history extends Example {
+    override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.urlDsl)
+  }
+
 }
+
