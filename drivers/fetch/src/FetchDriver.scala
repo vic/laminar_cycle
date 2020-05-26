@@ -9,12 +9,11 @@ object fetch {
 
   type Devices = CIO[(Request, Response), Request]
 
-  def driver: Driver[Devices] = {
+  def driver[El <: Element]: Driver[Devices, El] = {
     val devices = PIO[Request, (Request, Response)]
     val reqRes = devices.flatMap(req =>
       EventStream.fromFuture {
         Fetch.fetch(req.input, req.init).toFuture
-
       }.map(req -> _)
     )
     Driver(devices, reqRes --> devices)

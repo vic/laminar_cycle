@@ -73,8 +73,8 @@ object Example {
       EventStream.empty
   }
 
-  val tea: Driver[(EMO[State], EIO[Intent])] =
-    TEA[State, Intent, Action, Effect](
+  def tea[El <: Element]: Driver[(EMO[State], EIO[Intent]), El] =
+    TEA[State, Intent, Action, Effect, El](
       EMO[State](initialState),
       EIO[Intent],
       _.collect[Action] { case x: Action => x },
@@ -85,7 +85,7 @@ object Example {
 
   def main: Div = {
     div(
-      tea { case (state, actions) => view(state, actions) }
+      tea[Div] { case (state, actions) => view(state, actions) }
     )
   }
 

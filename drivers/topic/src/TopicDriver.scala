@@ -18,7 +18,7 @@ object topic {
 
   type TopicIO[T, I, O] = CIO[Msg[T, I, O], Input[T, I, O]]
 
-  def apply[T, I, O]: Driver[TopicIO[T, I, O]] = {
+  def apply[T, I, O, El <: Element]: Driver[TopicIO[T, I, O], El] = {
     val pio = PIO[Input[T, I, O], Msg[T, I, O]]
 
     val handlers        = EIO[Set[Handler[T, I, O]]]

@@ -11,9 +11,9 @@ import zio.duration._
 
 object ClockApp {
 
-  val time: ZCycle[In[Instant]] = ZCycle[In[Instant]]
+  val time = ZCycle[In[Instant], Element]
 
-  def apply(): ZIO[ZEnv, Nothing, ModEl] =
+  def apply(): ZIO[ZEnv, Nothing, Mod[Element]] =
     for {
       timeQueue <- Queue.unbounded[Instant]
 
@@ -27,11 +27,11 @@ object ClockApp {
         .repeat(Schedule.fixed(1 second))
         .forkDaemon
 
-      timeDriver <- timeQueue.zDriveIn
+      timeDriver <- timeQueue.zDriveIn[Element]
       view       <- viewTime.provideCustomLayer(time.cycleLayer(timeDriver))
     } yield timeDriver(_ => view)
 
-  def viewTime: ZIO[time.HasCycle, Nothing, ModEl] =
+  def viewTime: ZIO[time.HasCycle, Nothing, Mod[Element]] =
     time { io =>
       div(
         "ZIO CLOCK: ",

@@ -6,14 +6,14 @@ object TEA {
 
   type Devices[State, Action] = (EMO[State], EIO[Action])
 
-  def apply[State, Action, Pure <: Action, Effect <: Action](
+  def apply[State, Action, Pure <: Action, Effect <: Action, El <: Element](
       state: EMO[State],
       actions: EIO[Action],
       selectPure: EventStream[Action] => EventStream[Pure],
       selectEffect: EventStream[Action] => EventStream[Effect],
       performPure: (Pure, State) => (State, Option[Action]),
       performEffect: Effect => EventStream[Action]
-  ): Driver[Devices[State, Action]] = {
+  ): Driver[Devices[State, Action], El] = {
     val pures   = actions.compose(selectPure)
     val effects = actions.compose(selectEffect)
 

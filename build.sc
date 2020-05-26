@@ -26,7 +26,7 @@ object meta {
     val zio        = ivy"dev.zio::zio::${zioVersion}"
     val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
     val javaTime   = ivy"io.github.cquiroz::scala-java-time::2.0.0"
-    val urlDsl = ivy"be.doeraene::url-dsl::0.2.0"
+    val urlDsl     = ivy"be.doeraene::url-dsl::0.2.0"
   }
 }
 
@@ -54,14 +54,12 @@ object drivers extends Module {
 
   object all extends Driver {
     override def artifactName = "cycle"
-    override def moduleDeps = super.moduleDeps ++ Seq(
-      fetch,
-      zio,
-      topic,
-      state,
-      tea,
-      history
-    )
+
+    override def moduleDeps =
+      super.moduleDeps ++
+        drivers.millModuleDirectChildren
+          .asInstanceOf[Seq[Driver]]
+          .filterNot(_ == all)
 
     def mdocProperties = T {
       val cp = (
@@ -84,8 +82,9 @@ object drivers extends Module {
   object fetch extends Driver
 
   object zio extends Driver {
-    override def ivyDeps = super.ivyDeps() ++
-      Agg(meta.deps.zioStreams, meta.deps.javaTime)
+    override def ivyDeps =
+      super.ivyDeps() ++
+        Agg(meta.deps.zioStreams, meta.deps.javaTime)
   }
 
   object topic extends Driver
@@ -95,6 +94,8 @@ object drivers extends Module {
   object tea extends Driver
 
   object history extends Driver
+
+  object mount extends Driver
 
 }
 
@@ -109,12 +110,11 @@ object examples extends Module {
   object elm_architecture extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
-  object swapi_driver  extends Example
-  object zio_clock  extends Example
+  object swapi_driver extends Example
+  object zio_clock    extends Example
 
   object route_history extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.urlDsl)
   }
 
 }
-

@@ -7,17 +7,27 @@ import cycle._
 
 object Example {
 
-  def searchForm(current: Observable[String], search: Observer[String], submit: Observer[Unit]): Div =
+  def searchForm(
+      current: Observable[String],
+      search: Observer[String],
+      submit: Observer[Unit]
+  ): Div =
     div(
       form(
         "Search an StartWars character:",
         input(
           tpe := "text",
           value <-- current,
-          inContext { input => input.events(onKeyUp).delay(666).mapTo(input.ref.value) --> search }
+          inContext { input =>
+            input.events(onKeyUp).delay(666).mapTo(input.ref.value) --> search
+          }
         ),
         button(tpe := "submit", "Search"),
-        inContext { form => form.events(onSubmit.preventDefault.stopPropagation).mapTo(()) --> submit }
+        inContext { form =>
+          form
+            .events(onSubmit.preventDefault.stopPropagation)
+            .mapTo(()) --> submit
+        }
       )
     )
 
@@ -30,7 +40,11 @@ object Example {
     )
   }
 
-  def cycled(swapi: SWAPIDriver.UserIO, text: EIO[String], submit: EIO[Unit]): Mod[Element] = {
+  def cycled(
+      swapi: SWAPIDriver.UserIO,
+      text: EIO[String],
+      submit: EIO[Unit]
+  ): Mod[Element] = {
     val currentSearch = text.startWith("")
 
     val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
@@ -53,7 +67,7 @@ object Example {
   def apply(): Div = {
     import scala.concurrent.ExecutionContext.Implicits.global
     div(
-      SWAPIDriver { swapi => cycled(swapi, EIO[String], EIO[Unit]) }
+      SWAPIDriver[Div] { swapi => cycled(swapi, EIO[String], EIO[Unit]) }
     )
   }
 }

@@ -4,8 +4,6 @@ import cycle._
 import com.raquo.laminar.api.L._
 import org.scalajs.dom
 
-import scala.util.Try
-
 object Example {
 
   case class Global(
@@ -18,7 +16,7 @@ object Example {
   )
 
   def globalView(global: EMO[Global]): Div = {
-    val nameLayer = onion[Global, String](global)(_.globalName) {
+    val nameLayer = onion[Global, String, Div](global)(_.globalName) {
       case (globalName, global) => global.copy(globalName = globalName)
     }
 
@@ -37,7 +35,7 @@ object Example {
   }
 
   def localView(local: EMO[Local]): Div = {
-    val nameLayer = onion[Local, String](local)(_.localName) {
+    val nameLayer = onion[Local, String, Div](local)(_.localName) {
       case (localName, local) => local.copy(localName = localName)
     }
 
@@ -73,10 +71,10 @@ object Example {
 
   def apply(): Div = {
     div(
-      state[Global](Global("World", None)) { global =>
+      state[Global, Div](Global("World", None)) { global =>
         amend(
           globalView(global),
-          onion(bijGlobalToLocal)(global)(localView)
+          onion[Global, Local, Div](bijGlobalToLocal)(global)(localView)
         )
       }
     )

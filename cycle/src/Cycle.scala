@@ -9,10 +9,10 @@ private[cycle] trait API extends Core with Devices with Bijection with Helper
 private[core] trait Core {
 
   trait UserFn[-Devices, Ret] extends (Devices => Ret)
-  type User[-Devices] = UserFn[Devices, ModEl]
+  type User[-Devices, El <: Element] = UserFn[Devices, Mod[El]]
 
   trait CycleFn[+Devices, Ret] extends (UserFn[Devices, Ret] => Ret)
-  type Cycle[+Devices] = CycleFn[Devices, ModEl]
+  type Cycle[+Devices, El <: Element] = CycleFn[Devices, Mod[El]]
 
   trait DriverFn[+Devices, Ret] {
     val devices: Devices
@@ -22,17 +22,19 @@ private[core] trait Core {
     def toTuple: (Devices, Ret) = devices -> binder
   }
 
-  final class Driver[+Devices](val devices: Devices, val binder: ModEl)
-      extends DriverFn[Devices, ModEl] {
-    override def apply(user: UserFn[Devices, ModEl]): ModEl =
+  final class Driver[+Devices, El <: Element](
+      val devices: Devices,
+      val binder: Mod[El]
+  ) extends DriverFn[Devices, Mod[El]] {
+    override def apply(user: UserFn[Devices, Mod[El]]): Mod[El] =
       amend(binder, cycle(user))
   }
 
   object Driver {
-    def apply[Devices](
+    def apply[Devices, El <: Element](
         devices: Devices,
-        binds: ModEl*
-    ): Driver[Devices] = new Driver(devices, binds)
+        binds: Mod[El]*
+    ): Driver[Devices, El] = new Driver(devices, binds)
   }
 
 }
@@ -174,9 +176,9 @@ private[core] trait Bijection {
     bwd = _.map2(bwd)
   )
 
-  def emoBiject[A, B](
+  def emoBiject[A, B, El <: Element](
       from: EMO[A]
-  )(implicit bijection: MemBijection[A, B]): cycle.Driver[EMO[B]] = {
+  )(implicit bijection: MemBijection[A, B]): cycle.Driver[EMO[B], El] = {
     val signalB: Signal[B]  = from.compose(bijection.fwd)
     val writeB: EventBus[B] = new EventBus[B]
     val emoB: EMO[B]        = EMO(signalB, writeB.writer)
@@ -197,7 +199,9 @@ private[core] trait Bijection {
 }
 
 private[core] trait Helper {
-  type ModEl = Mod[Element]
+  def amend[El <: Element](mods: Mod[El]*): Mod[El] =
+    inContext[El](_.amend(mods: _*))
 
-  def amend(mods: ModEl*): ModEl = inContext(_.amend(mods: _*))
+  def drain[El <: Element](eventStream: EventStream[_]): Binder[El] =
+    eventStream.filter(_ => false).mapTo(()) --> Observer[Unit](_ => ())
 }

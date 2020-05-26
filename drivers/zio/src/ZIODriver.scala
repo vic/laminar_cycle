@@ -8,42 +8,45 @@ import zio.stream._
 
 object zioDriver {
 
-  class ZCycle[D: Tag] private[ZCycle] {
+  class ZCycle[D: Tag, El <: Element: Tag] private[ZCycle] {
     type Devices  = D
-    type Driver   = cycle.Driver[Devices]
-    type Cycle    = cycle.Cycle[Devices]
-    type User     = cycle.User[Devices]
+    type Driver   = cycle.Driver[Devices, El]
+    type Cycle    = cycle.Cycle[Devices, El]
+    type User     = cycle.User[Devices, El]
     type HasCycle = zio.Has[Cycle]
 
     def cycleLayer[R, E](driver: Driver): ZLayer[R, E, HasCycle] =
       ZLayer.fromFunction(_ => driver.cycle)
 
-    def apply[E](user: User): ZIO[HasCycle, E, ModEl] =
+    def apply[E](user: User): ZIO[HasCycle, E, Mod[El]] =
       ZIO.access[HasCycle](_.get).map(_.apply(user))
   }
 
   object ZCycle {
-    def apply[Devices: Tag]: ZCycle[Devices] = new ZCycle[Devices]
+    def apply[Devices: Tag, El <: Element: Tag]: ZCycle[Devices, El] =
+      new ZCycle[Devices, El]
   }
 
-  implicit class StreamOps[R, E, O](private val stream: ZStream[R, E, O])
-      extends AnyVal {
+  implicit class StreamOps[R, E, O](
+      private val stream: ZStream[R, E, O]
+  ) extends AnyVal {
 
-    def zDriveIn: ZIO[R, Nothing, Driver[In[O]]] =
-      toEventStream.map(t => Driver(In(t._1), t._2))
+    def zDriveIn[El <: Element]: ZIO[R, Nothing, Driver[In[O], El]] =
+      toEventStream[El].map(t => Driver(In(t._1), t._2))
 
-    def toEventStream: ZIO[R, Nothing, (EventStream[O], ModEl)] =
+    def toEventStream[El <: Element]
+        : ZIO[R, Nothing, (EventStream[O], Mod[El])] =
       for {
         _ <- ZIO.unit
         bus = new EventBus[O]
-        binder <- writeToBus(bus.writer)
+        binder <- writeToBus[El](bus.writer)
       } yield {
         bus.events -> binder
       }
 
-    def writeToBus(
+    def writeToBus[El <: Element](
         wb: WriteBus[O]
-    ): ZIO[R, Nothing, ModEl] =
+    ): ZIO[R, Nothing, Mod[El]] =
       for {
         runtime <- ZIO.runtime[R]
         drain: URIO[R, Fiber.Runtime[E, Unit]] = stream
@@ -77,9 +80,9 @@ object zioDriver {
       private val queue: ZQueue[RA, RB, EA, EB, A, B]
   ) extends AnyVal {
 
-    def readFromEventStream(
+    def readFromEventStream[El <: Element](
         eb: EventStream[A]
-    ): ZIO[RA, Nothing, ModEl] =
+    ): ZIO[RA, Nothing, Mod[El]] =
       for {
         runtime <- ZIO.runtime[RA]
       } yield Binder(
@@ -88,70 +91,73 @@ object zioDriver {
         }
       )
 
-    def writeToBus(
+    def writeToBus[El <: Element](
         wb: WriteBus[B]
-    ): ZIO[RB, Nothing, ModEl] =
+    ): ZIO[RB, Nothing, Mod[El]] =
       for {
         _ <- ZIO.unit
         stream = ZStream.fromQueue(queue)
-        binder <- stream.writeToBus(wb)
+        binder <- stream.writeToBus[El](wb)
       } yield binder
 
-    def zDriveCIO: ZIO[RA with RB, Nothing, Driver[InOut[B, A]]] =
+    def zDriveCIO[El <: Element]
+        : ZIO[RA with RB, Nothing, Driver[InOut[B, A], El]] =
       for {
-        inDriver  <- zDriveIn
-        outDriver <- zDriveOut
+        inDriver  <- zDriveIn[El]
+        outDriver <- zDriveOut[El]
       } yield {
         val devices = CIO(inDriver.devices.in, outDriver.devices.out)
         Driver(devices, inDriver.binder, outDriver.binder)
       }
 
-    def toEventStream: ZIO[RB, Nothing, (EventStream[B], ModEl)] =
+    def toEventStream[El <: Element]
+        : ZIO[RB, Nothing, (EventStream[B], Mod[El])] =
       for {
         _ <- ZIO.unit
         bus = new EventBus[B]
-        binder <- writeToBus(bus.writer)
+        binder <- writeToBus[El](bus.writer)
       } yield {
         bus.events -> binder
       }
 
-    def zDriveIn: ZIO[RB, Nothing, Driver[In[B]]] =
-      toEventStream.map(t => Driver(In(t._1), t._2))
+    def zDriveIn[El <: Element]: ZIO[RB, Nothing, Driver[In[B], El]] =
+      toEventStream[El].map(t => Driver(In(t._1), t._2))
 
-    def toWriteBus: ZIO[RA, Nothing, (WriteBus[A], ModEl)] =
+    def toWriteBus[El <: Element]: ZIO[RA, Nothing, (WriteBus[A], Mod[El])] =
       for {
         _ <- ZIO.unit
         bus = new EventBus[A]
-        binder <- readFromEventStream(bus.events)
+        binder <- readFromEventStream[El](bus.events)
       } yield {
         bus.writer -> binder
       }
 
-    def zDriveOut: ZIO[RA, Nothing, Driver[Out[A]]] =
-      toWriteBus.map(t => Driver(Out(t._1), t._2))
+    def zDriveOut[El <: Element]: ZIO[RA, Nothing, Driver[Out[A], El]] =
+      toWriteBus[El].map(t => Driver(Out(t._1), t._2))
   }
 
-  implicit class EventStreamOps[A](private val eb: EventStream[A])
-      extends AnyVal {
+  implicit class EventStreamOps[A](
+      private val eb: EventStream[A]
+  ) extends AnyVal {
 
-    def toZQueue(
+    def toZQueue[El <: Element](
         capacity: Int = 16
-    ): ZIO[Any, Nothing, (Queue[A], ModEl)] =
+    ): ZIO[Any, Nothing, (Queue[A], Mod[El])] =
       for {
         queue  <- ZQueue.bounded[A](capacity)
-        binder <- intoZQueue(queue)
+        binder <- intoZQueue[El](queue)
       } yield queue -> binder
 
-    def intoZQueue(queue: Queue[A]): ZIO[Any, Nothing, ModEl] =
-      queue.readFromEventStream(eb)
+    def intoZQueue[El <: Element](queue: Queue[A]): ZIO[Any, Nothing, Mod[El]] =
+      queue.readFromEventStream[El](eb)
 
-    def toZStream(capacity: Int = 16): ZIO[
+    def toZStream[El <: Element](capacity: Int = 16): ZIO[
       Any,
       Nothing,
-      (ZStream[Any, Nothing, A], ModEl)
+      (ZStream[Any, Nothing, A], Mod[El])
     ] =
       for {
-        queueAndBinder <- toZQueue(capacity)
+        queueAndBinder <- toZQueue[El](capacity)
         (queue, binder) = queueAndBinder
         stream          = ZStream.fromQueueWithShutdown(queue)
       } yield stream -> binder
@@ -159,22 +165,22 @@ object zioDriver {
   }
 
   implicit class WriteBusOps[A](private val wb: WriteBus[A]) extends AnyVal {
-    def toZQueue(capacity: Int = 16) =
+    def toZQueue[El <: Element](capacity: Int = 16) =
       for {
         queue  <- ZQueue.bounded[A](capacity)
-        binder <- intoZQueue(queue)
+        binder <- intoZQueue[El](queue)
       } yield queue -> binder
 
-    def intoZQueue(queue: Queue[A]): ZIO[Any, Nothing, ModEl] =
-      queue.writeToBus(wb)
+    def intoZQueue[El <: Element](queue: Queue[A]): ZIO[Any, Nothing, Mod[El]] =
+      queue.writeToBus[El](wb)
 
-    def toZStream(capacity: Int = 16): ZIO[
+    def toZStream[El <: Element](capacity: Int = 16): ZIO[
       Any,
       Nothing,
-      (ZStream[Any, Nothing, A], ModEl)
+      (ZStream[Any, Nothing, A], Mod[El])
     ] =
       for {
-        queueAndBinder <- toZQueue(capacity)
+        queueAndBinder <- toZQueue[El](capacity)
         (queue, binder) = queueAndBinder
         stream          = ZStream.fromQueueWithShutdown(queue)
       } yield stream -> binder
