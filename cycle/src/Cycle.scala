@@ -8,33 +8,56 @@ private[cycle] trait API extends Core with Devices with Bijection with Helper
 
 private[core] trait Core {
 
-  trait UserFn[-Devices, Ret] extends (Devices => Ret)
+  trait UserFn[-Devices, Binds] extends (Devices => Binds)
   type User[-Devices, El <: Element] = UserFn[Devices, Mod[El]]
 
-  trait CycleFn[+Devices, Ret] extends (UserFn[Devices, Ret] => Ret)
+  trait CycleFn[+Devices, Binds] extends (UserFn[Devices, Binds] => Binds)
   type Cycle[+Devices, El <: Element] = CycleFn[Devices, Mod[El]]
 
-  trait DriverFn[+Devices, Ret] {
+  trait DriverFn[+Devices, Binds] extends CycleFn[Devices, Binds] { self =>
     val devices: Devices
-    val binder: Ret
-    def cycle: CycleFn[Devices, Ret] = { user => user(devices) }
-    def apply(user: UserFn[Devices, Ret]): Ret
-    def toTuple: (Devices, Ret) = devices -> binder
+    val binds: Binds
+
+    def tuple: (Devices, Binds)        = devices -> binds
+    def cycle: CycleFn[Devices, Binds] = { user => user(devices) }
+
+    override def apply(user: UserFn[Devices, Binds]): Binds =
+      bind(binds, user(devices))
+
+    protected def bind(a: Binds, b: Binds): Binds
+
+    def map[D2](
+        f: Devices => D2
+    ): DriverFn[D2, Binds] = new DriverFn[D2, Binds] {
+      lazy val devices = f(self.devices)
+      lazy val binds   = self.binds
+
+      override protected def bind(a: Binds, b: Binds): Binds = self.bind(a, b)
+    }
+
+    def flatMap[D2](f: Devices => DriverFn[D2, Binds]): DriverFn[D2, Binds] = {
+      lazy val (devices2, binds2) = f(devices).tuple
+      new DriverFn[D2, Binds] {
+        lazy val devices = devices2
+        lazy val binds   = self.bind(self.binds, binds2)
+
+        override protected def bind(a: Binds, b: Binds): Binds = self.bind(a, b)
+      }
+    }
   }
 
-  final class Driver[+Devices, El <: Element](
-      val devices: Devices,
-      val binder: Mod[El]
-  ) extends DriverFn[Devices, Mod[El]] {
-    override def apply(user: UserFn[Devices, Mod[El]]): Mod[El] =
-      amend(binder, cycle(user))
-  }
+  type Driver[+Devices, El <: Element] = DriverFn[Devices, Mod[El]]
 
   object Driver {
     def apply[Devices, El <: Element](
-        devices: Devices,
-        binds: Mod[El]*
-    ): Driver[Devices, El] = new Driver(devices, binds)
+        aDevices: Devices,
+        aBinds: Mod[El]*
+    ): Driver[Devices, El] = new Driver[Devices, El] {
+      override val devices = aDevices
+      override val binds   = aBinds
+
+      override protected def bind(a: Mod[El], b: Mod[El]): Mod[El] = amend(a, b)
+    }
   }
 
 }

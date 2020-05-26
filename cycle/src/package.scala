@@ -8,7 +8,7 @@ package object cycle extends cycle.core.API {
         bDriver: Driver[B, El]
     ): Driver[(A, B), El] = {
       val abDevices = (aDriver.devices, bDriver.devices)
-      Driver(abDevices, aDriver.binder, bDriver.binder)
+      Driver(abDevices, aDriver.binds, bDriver.binds)
     }
   }
 
