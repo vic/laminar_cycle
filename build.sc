@@ -5,7 +5,7 @@ object meta {
   val scalaVersion   = "2.12.11"
   val scalaJSVersion = "1.0.1"
 
-  val laminarVersion = "0.9.0"
+  val laminarVersion = "0.9.1"
   val zioVersion     = "1.0.0-RC19"
 
   val publishVersion = os.read(os.pwd / "VERSION").trim
@@ -59,7 +59,8 @@ object drivers extends Module {
       zio,
       topic,
       state,
-      tea
+      tea,
+      history
     )
 
     def mdocProperties = T {
@@ -92,6 +93,8 @@ object drivers extends Module {
   object state extends Driver
 
   object tea extends Driver
+
+  object history extends Driver
 
 }
 

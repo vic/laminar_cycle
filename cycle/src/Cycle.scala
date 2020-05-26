@@ -16,23 +16,22 @@ private[core] trait Core {
 
   trait DriverFn[+Devices, Ret] {
     val devices: Devices
-    val binds: Binds
-    def cycle: CycleFn[Devices, Ret]
-    def apply(user: UserFn[Devices, Ret]): Ret = cycle(user)
-    def toTuple: (Devices, Binds)              = devices -> binds
+    val binder: Ret
+    def cycle: CycleFn[Devices, Ret] = { user => user(devices) }
+    def apply(user: UserFn[Devices, Ret]): Ret
+    def toTuple: (Devices, Ret) = devices -> binder
   }
 
-  final class Driver[+Devices](val devices: Devices, val binds: Binds)
+  final class Driver[+Devices](val devices: Devices, val binder: ModEl)
       extends DriverFn[Devices, ModEl] {
-    override def cycle: CycleFn[Devices, ModEl] = { user =>
-      amend(binds, user(devices))
-    }
+    override def apply(user: UserFn[Devices, ModEl]): ModEl =
+      amend(binder, cycle(user))
   }
 
   object Driver {
     def apply[Devices](
         devices: Devices,
-        binds: Binder[Element]*
+        binds: ModEl*
     ): Driver[Devices] = new Driver(devices, binds)
   }
 
@@ -98,8 +97,13 @@ private[core] trait Devices {
     def apply[T]: EIO[T] = new EventBus[T]
   }
 
+  object MemOut {
+    def apply[M, O](m: Signal[M], o: WriteBus[O]): MemOut[M, O] =
+      Devices(m, None, o)
+  }
+
   object EMO {
-    def apply[T](m: Signal[T], o: WriteBus[T]): EMO[T] = Devices(m, None, o)
+    def apply[T](m: Signal[T], o: WriteBus[T]): EMO[T] = MemOut(m, o)
     def apply[M](initial: => M): EMO[M]                = MIO(initial)
   }
 
@@ -129,6 +133,8 @@ private[core] trait Devices {
     implicit def oi[I, O](pio: PIO[I, O]): CIO[O, I]       = pio.oi
     implicit def in1[I, O](pio: PIO[I, O]): EventStream[I] = pio.io
     implicit def out1[I, O](pio: PIO[I, O]): WriteBus[O]   = pio.io
+    def in2[I, O](pio: PIO[I, O]): EventStream[O]          = pio.oi
+    def out2[I, O](pio: PIO[I, O]): WriteBus[I]            = pio.oi
   }
 
   object PIO {
@@ -192,11 +198,6 @@ private[core] trait Bijection {
 
 private[core] trait Helper {
   type ModEl = Mod[Element]
-  type Binds = Seq[Binder[Element]]
 
   def amend(mods: ModEl*): ModEl = inContext(_.amend(mods: _*))
-
-  def ownerMod(fn: Owner => ModEl): ModEl = {
-    onMountCallback { ctx => ctx.thisNode.amend(fn(ctx.owner)) }
-  }
 }

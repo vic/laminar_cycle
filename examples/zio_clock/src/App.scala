@@ -1,4 +1,4 @@
-package example.zio_effects
+package example.zio_clock
 
 import java.time.Instant
 
@@ -7,7 +7,6 @@ import cycle._
 import cycle.zioDriver._
 import org.scalajs.dom
 import zio._
-import zio.clock.Clock
 import zio.duration._
 
 object ClockApp {
@@ -30,7 +29,7 @@ object ClockApp {
 
       timeDriver <- timeQueue.zDriveIn
       view       <- viewTime.provideCustomLayer(time.cycleLayer(timeDriver))
-    } yield amend(view, timeDriver.binds)
+    } yield timeDriver(_ => view)
 
   def viewTime: ZIO[time.HasCycle, Nothing, ModEl] =
     time { io =>
