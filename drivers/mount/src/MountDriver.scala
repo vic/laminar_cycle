@@ -9,7 +9,7 @@ object mountDriver {
       unmounted: EventStream[El]
   )
 
-  def apply[El <: Element](): Driver[Devices[El], El] = {
+  def apply[El <: Element](): Driver[Devices[El]] = {
     val mount   = new EventBus[MountContext[El]]
     val unmount = new EventBus[El]
 
@@ -26,7 +26,7 @@ object mountDriver {
 
     Driver(
       Devices(mount.events, unmount.events),
-      binder
+      binder.asInstanceOf[Mod[Element]] // TODO: fix variance
     )
   }
 }

@@ -22,6 +22,11 @@ private[core] trait Core {
       user2: UserFn[D2, Binds] => apply { devices => fn(devices)(user2) }
     }
 
+    def withFilter(p: Devices => Boolean): CycleFn[Devices, Binds] =
+      flatMap {
+        case devices if p(devices) => this
+      }
+
     @inline def ++[D2](
         cycle: CycleFn[D2, Binds]
     ): CycleFn[(Devices, D2), Binds] =
@@ -51,34 +56,33 @@ private[core] trait Core {
 
   }
 
+  type BindFn[T] = (T, T) => T
+
   trait DriverFn[Devices, Binds] extends CycleFn[Devices, Binds] { self =>
     val devices: Devices
     val binds: Binds
+    val bindFn: BindFn[Binds]
 
     def tuple: (Devices, Binds)        = devices -> binds
     def cycle: CycleFn[Devices, Binds] = { user => user(devices) }
 
     override def apply(user: UserFn[Devices, Binds]): Binds =
-      bind(binds, user(devices))
-
-    protected def bind(a: Binds, b: Binds): Binds
+      bindFn(binds, user(devices))
   }
 
-  type User[Devices, El <: Element]   = UserFn[Devices, Mod[El]]
-  type Cycle[Devices, El <: Element]  = CycleFn[Devices, Mod[El]]
-  type Driver[Devices, El <: Element] = DriverFn[Devices, Mod[El]]
+  type User[Devices]  = UserFn[Devices, Mod[Element]]
+  type Cycle[Devices] = CycleFn[Devices, Mod[Element]]
+  class Driver[Devices](
+      val devices: Devices,
+      val binds: Mod[Element],
+      val bindFn: BindFn[Mod[Element]] = amend(_, _)
+  ) extends DriverFn[Devices, Mod[Element]]
 
   object Driver {
-    def apply[Devices, El <: Element](
-        aDevices: Devices,
-        aBinds: Mod[El]*
-    ): Driver[Devices, El] = new Driver[Devices, El] {
-      override val devices = aDevices
-      override val binds   = aBinds
-
-      override protected def bind(a: Mod[El], b: Mod[El]): Mod[El] =
-        amend(a, b)
-    }
+    def apply[Devices](
+        devices: Devices,
+        binds: Mod[Element]*
+    ): Driver[Devices] = new Driver[Devices](devices, amend(binds: _*))
   }
 
 }
@@ -225,9 +229,9 @@ private[core] trait Bijection {
     bwd = _.map2(bwd)
   )
 
-  def emoBiject[A, B, El <: Element](
+  def emoBiject[A, B](
       from: EMO[A]
-  )(implicit bijection: MemBijection[A, B]): cycle.Driver[EMO[B], El] = {
+  )(implicit bijection: MemBijection[A, B]): cycle.Driver[EMO[B]] = {
     val signalB: Signal[B]  = from.compose(bijection.fwd)
     val writeB: EventBus[B] = new EventBus[B]
     val emoB: EMO[B]        = EMO(signalB, writeB.writer)

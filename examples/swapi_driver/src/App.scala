@@ -67,7 +67,7 @@ object Example {
   def apply(): Div = {
     import scala.concurrent.ExecutionContext.Implicits.global
     div(
-      SWAPIDriver[Div] { swapi => cycled(swapi, EIO[String], EIO[Unit]) }
+      SWAPIDriver { swapi => cycled(swapi, EIO[String], EIO[Unit]) }
     )
   }
 }

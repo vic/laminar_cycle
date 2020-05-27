@@ -73,8 +73,8 @@ object Example {
       EventStream.empty
   }
 
-  def tea[El <: Element]: Driver[(EMO[State], EIO[Intent]), El] =
-    TEA[State, Intent, Action, Effect, El](
+  def tea[El <: Element]: Driver[(EMO[State], EIO[Intent])] =
+    TEA[State, Intent, Action, Effect](
       EMO[State](initialState),
       EIO[Intent],
       _.collect[Action] { case x: Action => x },

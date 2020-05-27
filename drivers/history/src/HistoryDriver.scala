@@ -37,7 +37,7 @@ object History {
 
   type IO = MIO[State, Event, Action]
 
-  def driver[El <: Element]: Driver[IO, El] = {
+  def driver: Driver[IO] = {
     val pio         = PIO[Action, Event]
     val state       = new EventBus[State]
     val stateSignal = state.events.toSignal(readState)

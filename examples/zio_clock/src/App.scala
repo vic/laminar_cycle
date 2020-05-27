@@ -27,7 +27,7 @@ object ClockApp {
         .repeat(Schedule.fixed(1 second))
         .forkDaemon
 
-      timeDriver <- timeQueue.zDriveIn[Element]
+      timeDriver <- timeQueue.zDriveIn
       view       <- viewTime.provideCustomLayer(time.cycleLayer(timeDriver))
     } yield timeDriver(_ => view)
 
