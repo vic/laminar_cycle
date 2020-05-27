@@ -1,6 +1,5 @@
 package cycle
 import com.raquo.laminar.api.L._
-import com.raquo.laminar.nodes.ReactiveElement
 
 object mountDriver {
 
@@ -14,15 +13,13 @@ object mountDriver {
     val unmount = new EventBus[El]
 
     val binder =
-      Binder[El] { el =>
-        ReactiveElement.bindSubscription[El](el) { ctx =>
+      onMountUnmountCallback[El](
+        mount = { ctx =>
           mount.writer
             .addSource(EventStream.fromValue(ctx, emitOnce = false))(ctx.owner)
-          new Subscription(ctx.owner, cleanup = () => {
-            unmount.writer.onNext(el)
-          })
-        }
-      }
+        },
+        unmount = { el => unmount.writer.onNext(el) }
+      )
 
     Driver(
       Devices(mount.events, unmount.events),
