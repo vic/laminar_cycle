@@ -23,7 +23,7 @@ object zioDriver {
   }
 
   object ZCycle {
-    def apply[Devices: Tag, El <: Element: Tag]: ZCycle[Devices] =
+    def apply[Devices: Tag]: ZCycle[Devices] =
       new ZCycle[Devices]
   }
 
@@ -104,8 +104,8 @@ object zioDriver {
         inDriver  <- zDriveIn
         outDriver <- zDriveOut
       } yield {
-        val devices = CIO(inDriver.devices.in, outDriver.devices.out)
-        Driver(devices, inDriver.binds, outDriver.binds)
+        val devices = CIO(inDriver.device.in, outDriver.device.out)
+        Driver(devices, inDriver.binder, outDriver.binder)
       }
 
     def toEventStream: ZIO[RB, Nothing, (EventStream[B], Mod[Element])] =

@@ -11,7 +11,7 @@ import zio.duration._
 
 object ClockApp {
 
-  val time = ZCycle[In[Instant], Element]
+  val time = ZCycle[In[Instant]]
 
   def apply(): ZIO[ZEnv, Nothing, Mod[Element]] =
     for {
