@@ -8,13 +8,50 @@ private[cycle] trait API extends Core with Devices with Bijection with Helper
 
 private[core] trait Core {
 
-  trait UserFn[-Devices, Binds] extends (Devices => Binds)
-  type User[-Devices, El <: Element] = UserFn[Devices, Mod[El]]
+  trait UserFn[-Devices, +Binds] extends (Devices => Binds)
+  trait CycleFn[Devices, Binds] extends (UserFn[Devices, Binds] => Binds) {
 
-  trait CycleFn[+Devices, Binds] extends (UserFn[Devices, Binds] => Binds)
-  type Cycle[+Devices, El <: Element] = CycleFn[Devices, Mod[El]]
+    def map[D2](fn: Devices => D2): CycleFn[D2, Binds] = {
+      user2: UserFn[D2, Binds] => apply { devices => user2(fn(devices)) }
+    }
 
-  trait DriverFn[+Devices, Binds] extends CycleFn[Devices, Binds] { self =>
+    @inline def >>=[D2](fn: Devices => CycleFn[D2, Binds]): CycleFn[D2, Binds] =
+      flatMap(fn)
+
+    def flatMap[D2](fn: Devices => CycleFn[D2, Binds]): CycleFn[D2, Binds] = {
+      user2: UserFn[D2, Binds] => apply { devices => fn(devices)(user2) }
+    }
+
+    @inline def ++[D2](
+        cycle: CycleFn[D2, Binds]
+    ): CycleFn[(Devices, D2), Binds] =
+      zip(cycle)
+
+    def zip[D2](cycle: CycleFn[D2, Binds]): CycleFn[(Devices, D2), Binds] = {
+      user3: UserFn[(Devices, D2), Binds] =>
+        apply { devices => cycle { devices2 => user3(devices -> devices2) } }
+    }
+
+    def unzip[A, B, D2](fn: (A, B) => D2)(
+        implicit ev: Devices <:< (A, B)
+    ): CycleFn[D2, Binds] = { user2: UserFn[D2, Binds] =>
+      apply { devices => user2(fn(devices._1, devices._2)) }
+    }
+
+    def contramap[B2](fn: B2 => Binds): UserFn[Devices, B2] => Binds = {
+      user2: UserFn[Devices, B2] => apply { devices => fn(user2(devices)) }
+    }
+
+    def bimap[D2, B2](
+        fn: Devices => D2,
+        fb: B2 => Binds
+    ): UserFn[D2, B2] => Binds = { user2: UserFn[D2, B2] =>
+      apply { devices => fb(user2(fn(devices))) }
+    }
+
+  }
+
+  trait DriverFn[Devices, Binds] extends CycleFn[Devices, Binds] { self =>
     val devices: Devices
     val binds: Binds
 
@@ -25,28 +62,11 @@ private[core] trait Core {
       bind(binds, user(devices))
 
     protected def bind(a: Binds, b: Binds): Binds
-
-    def map[D2](
-        f: Devices => D2
-    ): DriverFn[D2, Binds] = new DriverFn[D2, Binds] {
-      lazy val devices = f(self.devices)
-      lazy val binds   = self.binds
-
-      override protected def bind(a: Binds, b: Binds): Binds = self.bind(a, b)
-    }
-
-    def flatMap[D2](f: Devices => DriverFn[D2, Binds]): DriverFn[D2, Binds] = {
-      lazy val (devices2, binds2) = f(devices).tuple
-      new DriverFn[D2, Binds] {
-        lazy val devices = devices2
-        lazy val binds   = self.bind(self.binds, binds2)
-
-        override protected def bind(a: Binds, b: Binds): Binds = self.bind(a, b)
-      }
-    }
   }
 
-  type Driver[+Devices, El <: Element] = DriverFn[Devices, Mod[El]]
+  type User[Devices, El <: Element]   = UserFn[Devices, Mod[El]]
+  type Cycle[Devices, El <: Element]  = CycleFn[Devices, Mod[El]]
+  type Driver[Devices, El <: Element] = DriverFn[Devices, Mod[El]]
 
   object Driver {
     def apply[Devices, El <: Element](
@@ -56,7 +76,8 @@ private[core] trait Core {
       override val devices = aDevices
       override val binds   = aBinds
 
-      override protected def bind(a: Mod[El], b: Mod[El]): Mod[El] = amend(a, b)
+      override protected def bind(a: Mod[El], b: Mod[El]): Mod[El] =
+        amend(a, b)
     }
   }
 
@@ -88,6 +109,7 @@ private[core] trait Devices {
   type Out[T] = Devices[_, _, WriteBus[T]]
 
   type InOut[I, O]  = In[I] with Out[O]
+  type MemIn[M, I]  = Mem[M] with In[I]
   type MemOut[M, O] = Mem[M] with Out[O]
   type EMO[T]       = MemOut[T, T]
 
@@ -122,6 +144,10 @@ private[core] trait Devices {
     def apply[T]: EIO[T] = new EventBus[T]
   }
 
+  object MemIn {
+    def apply[M, I](m: Signal[M], i: EventStream[I]): MemIn[M, I] =
+      Devices(m, i, None)
+  }
   object MemOut {
     def apply[M, O](m: Signal[M], o: WriteBus[O]): MemOut[M, O] =
       Devices(m, None, o)
