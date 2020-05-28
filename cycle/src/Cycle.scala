@@ -4,7 +4,7 @@ import cycle._
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement
 
-private[cycle] trait API extends Core with Devices with Bijection with Helper
+private[cycle] trait API extends Core with IODevices with Bijection with Helper
 
 private[core] trait Core {
 
@@ -86,26 +86,38 @@ private[core] trait Core {
 
 }
 
-private[core] trait Devices {
+private[core] object IODevices {
+
+  implicit class MemOps[T](private val device: Mem[T]) extends AnyVal {
+    def mem: Signal[T] = device
+  }
+
+  implicit class InOps[T](private val device: In[T]) extends AnyVal {
+    def in: EventStream[T] = device
+  }
+
+  implicit class OutOps[T](private val device: Out[T]) extends AnyVal {
+    def out: WriteBus[T] = device
+  }
+
+}
+
+private[core] trait IODevices {
 
   class Devices[M, I, O](
-      private val memDevice: M,
-      private val inDevice: I,
-      private val outDevice: O
-  ) {
-    def in[T](implicit ev: I <:< EventStream[T]): EventStream[T] = inDevice
-    def out[T](implicit ev: O <:< WriteBus[T]): WriteBus[T]      = outDevice
-    def mem[T](implicit ev: M <:< Signal[T]): Signal[T]          = memDevice
-  }
+      private[core] val memDevice: M,
+      private[core] val inDevice: I,
+      private[core] val outDevice: O
+  )
 
   object Devices {
     def apply[M, I, O](m: M, i: I, o: O): Devices[M, I, O] =
       new Devices(m, i, o)
-
-    implicit def mem[T](device: Mem[T]): Signal[T]    = device.mem
-    implicit def in[T](device: In[T]): EventStream[T] = device.in
-    implicit def out[T](device: Out[T]): WriteBus[T]  = device.out
   }
+
+  implicit def mem[T](device: Mem[T]): Signal[T]    = device.memDevice
+  implicit def in[T](device: In[T]): EventStream[T] = device.inDevice
+  implicit def out[T](device: Out[T]): WriteBus[T]  = device.outDevice
 
   type Mem[T] = Devices[Signal[T], _, _]
   type In[T]  = Devices[_, EventStream[T], _]
