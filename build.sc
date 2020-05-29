@@ -13,9 +13,8 @@ object meta {
     implicit val wd: os.Path = os.pwd
     val short = %%("git", "rev-parse", "--short", "HEAD").out.trim
     val release = %%("git", "tag", "-l", "-n0", "--points-at", "HEAD").out.trim
-    val version = os.read(os.pwd / "VERSION").trim
     release match {
-      case "" => s"${version}-${short}"
+      case "" => short
       case _ => release
     }
   }
