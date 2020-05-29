@@ -8,7 +8,7 @@ object mountDriver {
       unmounted: EventStream[El]
   )
 
-  def apply[El <: Element](): DriverEl[Devices[El], El] = {
+  def apply[El <: Element](): DriverMod[Devices[El], El] = {
     val mount   = new EventBus[MountContext[El]]
     val unmount = new EventBus[El]
 

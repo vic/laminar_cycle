@@ -13,7 +13,7 @@ object TEA {
       selectEffect: EventStream[Action] => EventStream[Effect],
       performPure: (Pure, State) => (State, Option[Action]),
       performEffect: Effect => EventStream[Action]
-  ): Driver[Devices[State, Action]] = {
+  ): DriverEl[Devices[State, Action]] = {
     val pures   = actions.compose(selectPure)
     val effects = actions.compose(selectEffect)
 

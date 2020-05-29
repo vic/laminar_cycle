@@ -35,7 +35,7 @@ private[core] trait Bijection {
 
   def emoBiject[A, B](
       from: EMO[A]
-  )(implicit bijection: MemBijection[A, B]): Driver[EMO[B]] = {
+  )(implicit bijection: MemBijection[A, B]): DriverEl[EMO[B]] = {
     val signalB: Signal[B]  = from.compose(bijection.fwd)
     val writeB: EventBus[B] = new EventBus[B]
     val emoB: EMO[B]        = EMO(signalB, writeB.writer)

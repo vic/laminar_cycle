@@ -25,13 +25,13 @@ object SWAPIDriver {
   type UserIO = CIO[Output, Input]
 
   def apply(
-      user: User[UserIO]
+      user: UserEl[UserIO]
   )(implicit ec: ExecutionContext): Mod[Element] =
     driver(ec)(user) // Just swap the implicit parameters to make compiler happy
 
   def driver(
       implicit ec: ExecutionContext
-  ): Cycle[UserIO] = { user =>
+  ): CycleEl[UserIO] = { user =>
     val pio = PIO[Input, Output]
 
     val reqAndRes: EventStream[Output] = pio.flatMap { req =>

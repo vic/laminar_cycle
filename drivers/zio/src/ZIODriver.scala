@@ -10,9 +10,9 @@ object zioDriver {
 
   class ZCycle[D: Tag] private[ZCycle] {
     type Devices  = D
-    type Driver   = cycle.Driver[Devices]
-    type Cycle    = cycle.Cycle[Devices]
-    type User     = cycle.User[Devices]
+    type Driver   = cycle.DriverEl[Devices]
+    type Cycle    = cycle.CycleEl[Devices]
+    type User     = cycle.UserEl[Devices]
     type HasCycle = zio.Has[Cycle]
 
     def cycleLayer[R, E](driver: Driver): ZLayer[R, E, HasCycle] =
@@ -31,7 +31,7 @@ object zioDriver {
       private val stream: ZStream[R, E, O]
   ) extends AnyVal {
 
-    def zDriveIn: ZIO[R, Nothing, Driver[In[O]]] =
+    def zDriveIn: ZIO[R, Nothing, DriverEl[In[O]]] =
       toEventStream.map(t => Driver(In(t._1), t._2))
 
     def toEventStream: ZIO[R, Nothing, (EventStream[O], Mod[Element])] =
@@ -99,7 +99,7 @@ object zioDriver {
         binder <- stream.writeToBus(wb)
       } yield binder
 
-    def zDriveCIO: ZIO[RA with RB, Nothing, Driver[InOut[B, A]]] =
+    def zDriveCIO: ZIO[RA with RB, Nothing, DriverEl[InOut[B, A]]] =
       for {
         inDriver  <- zDriveIn
         outDriver <- zDriveOut
@@ -117,7 +117,7 @@ object zioDriver {
         bus.events -> binder
       }
 
-    def zDriveIn: ZIO[RB, Nothing, Driver[In[B]]] =
+    def zDriveIn: ZIO[RB, Nothing, DriverEl[In[B]]] =
       toEventStream.map(t => Driver(In(t._1), t._2))
 
     def toWriteBus: ZIO[RA, Nothing, (WriteBus[A], Mod[Element])] =
@@ -129,7 +129,7 @@ object zioDriver {
         bus.writer -> binder
       }
 
-    def zDriveOut: ZIO[RA, Nothing, Driver[Out[A]]] =
+    def zDriveOut: ZIO[RA, Nothing, DriverEl[Out[A]]] =
       toWriteBus.map(t => Driver(Out(t._1), t._2))
   }
 

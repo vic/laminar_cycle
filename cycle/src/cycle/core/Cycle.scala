@@ -11,7 +11,9 @@ private[core] trait Core {
     * @see cycle#amend
     * @tparam A - In most cases this will be a Laminar Modifier: `Mod[El]`
     */
-  trait BindFn[A] extends ((A, A) => A)
+  trait Bind[A] {
+    def apply(a: A, b: A): A
+  }
 
   /**
     * A User function takes devices of type `D` and returns a `V` which can be
@@ -20,7 +22,9 @@ private[core] trait Core {
     * @tparam D The type of devices this function consumes
     * @tparam V The type of view or result this function produces.
     */
-  trait UserFn[-D, +V] extends (D => V)
+  trait User[-D, +V] {
+    def apply(device: D): V
+  }
 
   /**
     * A Cycle function takes a User function and invokes it with some `D` devices
@@ -29,65 +33,8 @@ private[core] trait Core {
     * @tparam D
     * @tparam V
     */
-  trait CycleFn[D, V] extends (UserFn[D, V] => V) {
-
-    /**
-      * Maps this cycle's device `D` into `D2` by using the provided function.
-      *
-      * @param fn - A function to map from this device to something else.
-      * @tparam D2
-      * @return A new cycle that maps on devices.
-      */
-    def map[D2](fn: D => D2): CycleFn[D2, V] = { user2: UserFn[D2, V] =>
-      apply { devices => user2(fn(devices)) }
-    }
-
-    /**
-      * Alias for `flatMap`
-      *
-      * @see #flatMap
-      * @param fn
-      * @tparam D2
-      * @return
-      */
-    @inline def >>=[D2](fn: D => CycleFn[D2, V]): CycleFn[D2, V] =
-      flatMap(fn)
-
-    def flatMap[D2](fn: D => CycleFn[D2, V]): CycleFn[D2, V] = {
-      user2: UserFn[D2, V] => apply { devices => fn(devices)(user2) }
-    }
-
-    def withFilter[E](p: D => Boolean): CycleFn[D, V] =
-      flatMap {
-        case devices if p(devices) => this
-      }
-
-    @inline def ++[D2](
-        cycle: CycleFn[D2, V]
-    ): CycleFn[(D, D2), V] =
-      zip(cycle)
-
-    def zip[D2](cycle: CycleFn[D2, V]): CycleFn[(D, D2), V] = {
-      user3: UserFn[(D, D2), V] =>
-        apply { devices => cycle { devices2 => user3(devices -> devices2) } }
-    }
-
-    def unzip[A, B, D2](fn: (A, B) => D2)(
-        implicit ev: D <:< (A, B)
-    ): CycleFn[D2, V] = { user2: UserFn[D2, V] =>
-      apply { devices => user2(fn(devices._1, devices._2)) }
-    }
-
-    def contramap[B2](fn: B2 => V): UserFn[D, B2] => V = {
-      user2: UserFn[D, B2] => apply { devices => fn(user2(devices)) }
-    }
-
-    def bimap[D2, B2](
-        fn: D => D2,
-        fb: B2 => V
-    ): UserFn[D2, B2] => V = { user2: UserFn[D2, B2] =>
-      apply { devices => fb(user2(fn(devices))) }
-    }
+  trait Cycle[-D, +V, -U <: User[D, V]] {
+    def apply(user: U): V
   }
 
   /**
@@ -105,7 +52,7 @@ private[core] trait Core {
     * will invoke the driver's binder in those respective places (calling the modifier).
     *
     * If you want to share a driver devices into many sub-components, bind this driver
-    * only once and use the `DriverFn#cycle` method to obtain a re-usable cycle from
+    * only once and use the `Driver#cycle` method to obtain a re-usable cycle from
     * this driver's devices.
     *
     * @see #cycle - Obtain a re-usable cycle from this driver.
@@ -118,12 +65,15 @@ private[core] trait Core {
     * @tparam D
     * @tparam V
     */
-  case class DriverFn[D, V](
+  case class Driver[D, V](
       device: D,
       binder: V,
       emptyBinder: V,
-      bindFn: BindFn[V]
-  ) extends CycleFn[D, V] {
+      bindFn: Bind[V]
+  ) extends Cycle[D, V, User[D, V]]
+      with FlatMap[D, V, Driver] {
+
+    def tuple: (D, V) = device -> binder
 
     /**
       * Obtain a Cycle function that can be passed around and invoked many times.
@@ -137,7 +87,7 @@ private[core] trait Core {
       * @see #apply
       * @return A cycle function that only yields this driver devices.
       */
-    def cycle: CycleFn[D, V] = { user => user(device) }
+    def cycle: Cycle[D, V, User[D, V]] = { user => user(device) }
 
     /**
       *
@@ -154,7 +104,7 @@ private[core] trait Core {
       * @param user - A function taking this driver devices and producing it's own modifier.
       * @return The combination of this driver's binder and the result of the user function.
       */
-    override def apply(user: UserFn[D, V]): V =
+    def apply(user: User[D, V]): V =
       bindFn(binder, cycle(user))
 
     /**
@@ -165,8 +115,11 @@ private[core] trait Core {
       * @see #liftCycle
       * @return A new driver encapsulating this one.
       */
-    def lift: DriverFn[DriverFn[D, V], V] =
+    def lift: Driver[Driver[D, V], V] =
       copy(device = this, binder = emptyBinder)
+
+    def liftTuple: Driver[(D, V), V] =
+      lift.map(_.tuple)
 
     /**
       * Lifts only this driver's devices into a new Driver
@@ -180,7 +133,7 @@ private[core] trait Core {
       *
       * @return An split new driver
       */
-    def liftCycle: DriverFn[DriverFn[D, V], V] =
+    def liftCycle: Driver[Driver[D, V], V] =
       copy(device = copy(device = device, binder = emptyBinder))
 
     /**
@@ -191,30 +144,111 @@ private[core] trait Core {
       * @tparam D0
       * @return
       */
-    def lower[D0](implicit ev: D <:< DriverFn[D0, V]): DriverFn[D0, V] =
+    def lower[D0](implicit ev: D <:< Driver[D0, V]): Driver[D0, V] =
       copy(
         device = device.device,
         binder = bindFn(binder, device.binder)
       )
 
+    def self: Driver[D, V]  = this
+    def empty: Driver[D, V] = copy(binder = emptyBinder)
+
+    def bimap[D2, B2](fn: D => D2, fb: B2 => V): User[D2, B2] => V =
+      map(fn).contramap(fb)
+
+    def contramap[B2](fn: B2 => V): User[D, B2] => V = { user =>
+      fn(user(device))
+    }
+
+    def flatMap[D2](fn: D => Driver[D2, V]): Driver[D2, V] =
+      copy(device = fn(device)).lower
+
+    def flatten[D2](implicit ev: D <:< Driver[D2, V]): Driver[D2, V] =
+      lower
+
+    def map[D2](fn: D => D2): Driver[D2, V] =
+      copy(device = fn(device))
+
+    def zip[D2](other: Driver[D2, V]): Driver[(D, D2), V] =
+      copy(
+        device = (device, other.device),
+        binder = bindFn(binder, other.binder)
+      )
+
+    def unzip[A, B, D2](
+        fn: (A, B) => D2
+    )(implicit ev: D <:< (A, B)): Driver[D2, V] =
+      copy(device = fn(device._1, device._2))
+
   }
 
-  object DriverFn {
-    implicit def toTuple[D, V](driver: DriverFn[D, V]): (D, V) =
-      driver.device -> driver.binder
-  }
+  type UserMod[D, El <: Element]   = User[D, Mod[El]]
+  type CycleMod[D, El <: Element]  = Cycle[D, Mod[El], User[D, Mod[El]]]
+  type DriverMod[D, El <: Element] = Driver[D, Mod[El]]
 
-  type UserEl[D, El <: Element]   = UserFn[D, Mod[El]]
-  type CycleEl[D, El <: Element]  = CycleFn[D, Mod[El]]
-  type DriverEl[D, El <: Element] = DriverFn[D, Mod[El]]
-
-  type User[D]   = UserEl[D, Element]
-  type Cycle[D]  = CycleEl[D, Element]
-  type Driver[D] = DriverEl[D, Element]
+  type UserEl[D]   = UserMod[D, Element]
+  type CycleEl[D]  = CycleMod[D, Element]
+  type DriverEl[D] = DriverMod[D, Element]
 
   object Driver {
-    def apply[D, El <: Element](devices: D, binds: Mod[El]*) =
-      DriverFn[D, Mod[El]](devices, amend(binds: _*), emptyMod, amend(_, _))
+    def apply[D, El <: Element](
+        devices: D,
+        binds: Mod[El]*
+    ): Driver[D, Mod[El]] =
+      Driver[D, Mod[El]](devices, amend(binds: _*), emptyMod, amend(_, _))
+  }
+
+  trait FlatMap[D, V, Self[X, Y] <: Cycle[X, Y, User[X, Y]]] {
+
+    def self: Self[D, V]
+    def empty: Self[D, V]
+
+    /**
+      * Alias for `flatMap`
+      *
+      * @see #flatMap
+      * @param fn
+      * @tparam D2
+      * @return
+      */
+    @inline def >>=[D2](fn: D => Self[D2, V]): Self[D2, V] = flatMap(fn)
+
+    def flatMap[D2](fn: D => Self[D2, V]): Self[D2, V]
+
+    def flatten[D2](implicit ev: D <:< Self[D2, V]): Self[D2, V]
+
+    /**
+      * Maps this cycle's device `D` into `D2` by using the provided function.
+      *
+      * @param fn - A function to map from this device to something else.
+      * @tparam D2
+      * @return A new cycle that maps on devices.
+      */
+    def map[D2](fn: D => D2): Self[D2, V]
+
+    def withFilter(p: D => Boolean): Self[D, V] =
+      flatMap {
+        case devices if p(devices) => self
+        case _                     => empty
+      }
+
+    @inline def ++[D2](
+        cycle: Self[D2, V]
+    ): Self[(D, D2), V] =
+      zip(cycle)
+
+    def zip[D2](cycle: Self[D2, V]): Self[(D, D2), V]
+
+    def unzip[A, B, D2](fn: (A, B) => D2)(
+        implicit ev: D <:< (A, B)
+    ): Self[D2, V]
+
+    def contramap[B2](fn: B2 => V): User[D, B2] => V
+
+    def bimap[D2, B2](
+        fn: D => D2,
+        fb: B2 => V
+    ): User[D2, B2] => V
   }
 
 }
