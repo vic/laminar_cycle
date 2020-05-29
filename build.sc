@@ -49,7 +49,7 @@ object drivers extends Module {
     def publishVersion        = T { meta.publishVersion }
     def pomSettings           = T { meta.pomSettings }
     override def moduleDeps   = super.moduleDeps ++ Seq(cycle)
-    override def artifactName = s"driver-${millModuleBasePath.value.last}"
+    override def artifactName = s"${millModuleBasePath.value.last}-driver"
   }
 
   object all extends Driver {
@@ -83,8 +83,7 @@ object drivers extends Module {
 
   object zio extends Driver {
     override def ivyDeps =
-      super.ivyDeps() ++
-        Agg(meta.deps.zioStreams, meta.deps.javaTime)
+      super.ivyDeps() ++ Agg(meta.deps.zioStreams)
   }
 
   object topic extends Driver
@@ -111,7 +110,10 @@ object examples extends Module {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
   object swapi_driver extends Example
-  object zio_clock    extends Example
+
+  object zio_clock    extends Example {
+    override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
+  }
 
   object route_history extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.urlDsl)

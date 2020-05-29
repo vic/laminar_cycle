@@ -151,7 +151,7 @@ private[core] trait Core {
       )
 
     def self: Driver[D, V]  = this
-    def empty: Driver[D, V] = copy(binder = emptyBinder)
+    def never: Driver[D, V] = mod(_ => emptyBinder)
 
     def bimap[D2, B2](fn: D => D2, fb: B2 => V): User[D2, B2] => V =
       map(fn).contramap(fb)
@@ -168,6 +168,9 @@ private[core] trait Core {
 
     def map[D2](fn: D => D2): Driver[D2, V] =
       copy(device = fn(device))
+
+    def mod(fn: V => V): Driver[D, V] =
+      copy(binder = fn(binder))
 
     def zip[D2](other: Driver[D2, V]): Driver[(D, D2), V] =
       copy(
@@ -191,17 +194,23 @@ private[core] trait Core {
   type DriverEl[D] = DriverMod[D, Element]
 
   object Driver {
+    lazy val unit = bind[Element]()
+
+    def bind[El <: Element](binds: Mod[El]*): Driver[Unit, Mod[El]] =
+      apply((), binds: _*)
+
     def apply[D, El <: Element](
         devices: D,
         binds: Mod[El]*
     ): Driver[D, Mod[El]] =
       Driver[D, Mod[El]](devices, amend(binds: _*), emptyMod, amend(_, _))
+
   }
 
   trait FlatMap[D, V, Self[X, Y] <: Cycle[X, Y, User[X, Y]]] {
 
     def self: Self[D, V]
-    def empty: Self[D, V]
+    def never: Self[D, V]
 
     /**
       * Alias for `flatMap`
@@ -226,10 +235,12 @@ private[core] trait Core {
       */
     def map[D2](fn: D => D2): Self[D2, V]
 
+    def mod(fn: V => V): Self[D, V]
+
     def withFilter(p: D => Boolean): Self[D, V] =
       flatMap {
         case devices if p(devices) => self
-        case _                     => empty
+        case _                     => never
       }
 
     @inline def ++[D2](

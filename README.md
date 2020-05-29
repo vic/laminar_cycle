@@ -9,7 +9,7 @@
 
 ## Installation
 
-> Artifact: `com.github.vic.laminar_cycle::cycle::VERSION`
+> Artifact: `com.github.vic.laminar_cycle::cycle-core::VERSION`
 
 Each release artifacts are available from [JitPack][JitPack]
 
@@ -260,7 +260,7 @@ parent element is mounted/unmounted from UI.
 
 ### Available Drivers
 
-> All drivers artifact: `com.github.vic.laminar_cycle::all-drivers::VERSION`
+> All drivers artifact: `com.github.vic.laminar_cycle::cycle::VERSION`
 
 Individual Drivers:
 
