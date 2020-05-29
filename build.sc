@@ -1,5 +1,6 @@
 // -*- scala -*-
 import mill._, scalajslib._, scalalib._, publish._
+import ammonite.ops._
 
 object meta {
   val scalaVersion   = "2.12.11"
@@ -8,7 +9,17 @@ object meta {
   val laminarVersion = "0.9.1"
   val zioVersion     = "1.0.0-RC19"
 
-  val publishVersion = os.read(os.pwd / "VERSION").trim
+  val publishVersion = {
+    implicit val wd: os.Path = os.pwd
+    val short = %%("git", "rev-parse", "--short", "HEAD").out.trim
+    val release = %%("git", "tag", "-l", "-n0", "--points-at", "HEAD").out.trim
+    val version = os.read(os.pwd / "VERSION").trim
+    release match {
+      case "" => s"${version}-${short}"
+      case _ => release
+    }
+  }
+
   val pomSettings =
     PomSettings(
       description = "Cycle style FRP interfaces using Laminar",
