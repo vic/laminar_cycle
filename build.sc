@@ -85,7 +85,8 @@ trait BaseModule extends ScalaJSModule {
       Seq(
         // "-Xfatal-warnings",
         "-explaintypes",
-        "-language:higherKinds"
+        "-language:higherKinds",
+        "-language:postfixOps"
       )
 
   override def scalacPluginIvyDeps =
