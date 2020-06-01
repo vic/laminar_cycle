@@ -104,8 +104,10 @@ object zioDriver {
         inDriver  <- zDriveIn
         outDriver <- zDriveOut
       } yield {
-        val devices = CIO(inDriver.device.in, outDriver.device.out)
-        Driver(devices, inDriver.binder, outDriver.binder)
+        for {
+          inDevice  <- inDriver
+          outDevice <- outDriver
+        } yield CIO(inDevice.in, outDevice.out)
       }
 
     def toEventStream: ZIO[RB, Nothing, (EventStream[B], Mod[Element])] =

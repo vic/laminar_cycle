@@ -361,25 +361,25 @@ Automatically manages subscriptions between zio and Laminar streams.
 [SWAPIDriver]: https://vic.github.io/laminar_cycle/examples/swapi_driver/src/index.html
 [swapi-driver-source]: examples/swapi_driver/src
 
-[laminar-cycle-javadoc]: https://vic.github.io/laminar_cycle/out/cycle/docJar/dest/javadoc/index.html
+[laminar-cycle-javadoc]: https://vic.github.io/laminar_cycle/out/cycle/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [laminar-cycle-source]: cycle/src/Cycle.scala
 
-[fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/docJar/dest/javadoc/index.html
+[fetch-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/fetch/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [fetch-driver-source]: drivers/fetch/src
 
-[state-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/state/docJar/dest/javadoc/index.html
+[state-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/state/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [state-driver-source]: drivers/state/src
 
-[tea-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/tea/docJar/dest/javadoc/index.html
+[tea-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/tea/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [tea-driver-source]: drivers/tea/src
 
-[topic-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/topic/docJar/dest/javadoc/index.html
+[topic-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/2.13.2/1.1.0/topic/docJar/dest/javadoc/index.html
 [topic-driver-source]: drivers/topic/src
 
-[combine-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/combine/docJar/dest/javadoc/index.html.
+[combine-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/2.13.2/1.1.0/combine/docJar/dest/javadoc/index.html
 [combine-driver-source]: drivers/combine/src
 
-[zio-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/zio/docJar/dest/javadoc/index.html
+[zio-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/zio/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [zio-driver-source]: drivers/zio/src
 
 [ZIO]: https://zio.dev/

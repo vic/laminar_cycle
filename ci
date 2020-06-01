@@ -15,7 +15,7 @@ case "$1" in
  ;;
 
  gh-pages)
-   $0 mill '{cycle.docJar,drivers._.docJar,examples._.fastOpt}'
+   $0 mill '{__.docJar,examples.__.fastOpt}'
    find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
    mkdir -p gh-pages
    cp -rfv docs/index* docs/404* README.md docs/ examples/ gh-pages/
