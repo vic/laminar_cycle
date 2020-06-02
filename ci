@@ -37,7 +37,7 @@ case "$1" in
  ;;
 
  mdoc-gen)
-   $0 mill drivers.all.mdocProperties
+   $0 mill drivers.all._.mdocProperties
    $0 mdoc-js -i docs/doc1.md -o docs/doc2.md
  ;;
 

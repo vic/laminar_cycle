@@ -141,8 +141,6 @@ private[core] trait Driver {
     def liftCycle: Driver[Driver[D, B], B] =
       copy(newDevice = copy(newDevice = device, newBinder = emptyBinder))
 
-    def widen[B0 >: B]: Driver[D, B0] = asInstanceOf[Driver[D, B0]]
-
     private[core] def copy[D2](
         newDevice: D2 = device,
         newBinder: B = binder
@@ -161,7 +159,7 @@ private[core] trait Driver {
       value(device, mods: _*)
 
     def unapply[D, B](driver: Driver[D, B]): Option[(D, B)] =
-      Some(driver)
+      Some(driver.tuple)
 
     def value[D, El <: Element](device: D, mods: Mod[El]*): Driver[D, Mod[El]] =
       new Driver[D, Mod[El]](
@@ -177,9 +175,6 @@ private[core] trait Driver {
     def bind[El <: Element](mods: Mod[El]*) =
       value[Unit, El](device = (), mods: _*)
 
-    implicit def asTuple[D, B](driver: Driver[D, B]): (D, B) =
-      driver.device -> driver.binder
-
     implicit def fromTuple[D, El <: Element](
         tuple: (D, Mod[El])
     ): Driver[D, Mod[El]] =
@@ -188,7 +183,7 @@ private[core] trait Driver {
   }
 
   trait DriverOps[D, B] { driver: Driver[D, B] =>
-    def tuple: (D, B) = driver
+    def tuple: (D, B) = driver.device -> driver.binder
 
     def map[D2](f: D => D2): Driver[D2, B] =
       copy(f(device))
@@ -216,9 +211,6 @@ private[core] trait Driver {
         f: (D0, D1) => D2
     )(implicit ev: D <:< (D0, D1)): Driver[D2, B] =
       map(d => f(d._1, d._2))
-
-    def widen[B0 >: B](f: B => B0): Driver[D, B0] =
-      widen[B0].copy(newBinder = f(binder))
 
   }
 
