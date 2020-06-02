@@ -6,20 +6,14 @@ import mill.scalajslib._
 import mill.scalalib._
 import mill.scalalib.publish._
 
-case class CrossV(scalaVersion: String, scalajsVersion: String) {
-  def toList: List[String] = List(scalaVersion, scalajsVersion)
-}
 abstract class CrossO[T](implicit ci: Cross.Factory[T], ctx: Ctx)
     extends Cross[T](meta.crossVersions: _*)
-abstract class CrossM(val crossVersion: CrossV) extends Module {
-  def this() = this(meta.crossVersions.head)
-}
 
 object meta {
-  val crossVersions: Seq[CrossV] = for {
+  val crossVersions: Seq[(String, String)] = for {
     scala   <- Seq("2.13.2", "2.12.11")
-    scalajs <- Seq("1.1.0", "1.0.1")
-  } yield CrossV(scala, scalajs)
+    scalajs <- Seq("1.1.0")
+  } yield (scala, scalajs)
 
   val laminarVersion = "0.9.1"
   val zioVersion     = "1.0.0-RC19"
@@ -36,8 +30,8 @@ object meta {
 
   val pomSettings =
     PomSettings(
-      description = "Cycle style FRP interfaces using Laminar",
-      organization = "com.github.vic.laminar.cycle",
+      description = "cycle.js style user-computer interaction in Laminar",
+      organization = "com.github.vic.laminar_cycle",
       url = "https://github.com/vic/laminar_cycle",
       licenses = Seq(License.`Apache-2.0`),
       versionControl = VersionControl.github("vic", "laminar_cycle"),
@@ -57,15 +51,17 @@ object meta {
 }
 
 trait BaseModule extends ScalaJSModule {
-  def crossVersion: CrossV
+  val scalaCross: String
+  val scalaJSCross: String
 
-  override def scalaVersion   = crossVersion.scalaVersion
-  override def scalaJSVersion = crossVersion.scalajsVersion
+  override def scalaVersion: T[String] = scalaCross
+  override def scalaJSVersion: T[String] = scalaJSCross
   override def scalaJSWorkerVersion =
     "1.0" // TODO: remove when mill#894 is fixed
 
-  implicit object resolver extends mill.define.Cross.Resolver[BaseModule] {
-    def resolve[V <: BaseModule](c: Cross[V]): V = c.get(crossVersion.toList)
+  implicit object resolver extends Cross.Resolver[BaseModule] {
+    def resolve[V <: BaseModule](c: Cross[V]): V =
+      c.get(List(scalaCross, scalaJSCross))
   }
 
   override def sources: Sources = T.sources {
@@ -95,7 +91,7 @@ trait BaseModule extends ScalaJSModule {
 }
 
 object cycle extends CrossO[cycle]
-class cycle extends CrossM with BaseModule with PublishModule {
+class cycle(val scalaCross: String, val scalaJSCross: String) extends BaseModule with PublishModule {
   override def artifactName = "cycle-core"
   def publishVersion        = T { meta.publishVersion }
   def pomSettings           = T { meta.pomSettings }
@@ -105,15 +101,16 @@ class cycle extends CrossM with BaseModule with PublishModule {
 
 object drivers extends Module {
 
-  sealed trait Driver extends BaseModule with PublishModule {
+  sealed trait Driver extends PublishModule with BaseModule {
     def publishVersion        = T { meta.publishVersion }
     def pomSettings           = T { meta.pomSettings }
+    def driverName = millOuterCtx.millSourcePath.last
+    override def artifactName = s"${driverName}-driver"
     override def moduleDeps   = super.moduleDeps ++ Seq(cycle())
-    override def artifactName = s"${millModuleBasePath.value.last}-driver"
   }
 
   object all extends CrossO[all]
-  class all extends CrossM with Driver {
+  class all(val scalaCross: String, val scalaJSCross: String) extends Driver {
     override def artifactName = "cycle"
 
     override def moduleDeps =
@@ -142,28 +139,28 @@ object drivers extends Module {
   }
 
   object fetch extends CrossO[fetch]
-  class fetch  extends CrossM with Driver
+  class fetch (val scalaCross: String, val scalaJSCross: String) extends Driver
 
   object zio extends CrossO[zio]
-  class zio extends CrossM with Driver {
+  class zio(val scalaCross: String, val scalaJSCross: String) extends Driver {
     override def ivyDeps =
       super.ivyDeps() ++ Agg(meta.deps.zioStreams)
   }
 
   object topic extends CrossO[topic]
-  class topic  extends CrossM with Driver
+  class topic (val scalaCross: String, val scalaJSCross: String) extends Driver
 
   object state extends CrossO[state]
-  class state  extends CrossM with Driver
+  class state (val scalaCross: String, val scalaJSCross: String) extends Driver
 
   object tea extends CrossO[tea]
-  class tea  extends CrossM with Driver
+  class tea (val scalaCross: String, val scalaJSCross: String) extends Driver
 
   object history extends CrossO[history]
-  class history  extends CrossM with Driver
+  class history (val scalaCross: String, val scalaJSCross: String) extends Driver
 
   object mount extends CrossO[mount]
-  class mount  extends CrossM with Driver
+  class mount (val scalaCross: String, val scalaJSCross: String) extends Driver
 
 }
 
@@ -174,25 +171,25 @@ object examples extends Module {
   }
 
   object onion_state extends CrossO[onion_state]
-  class onion_state  extends CrossM with Example
+  class onion_state (val scalaCross: String, val scalaJSCross: String) extends Example
 
   object cycle_counter extends CrossO[cycle_counter]
-  class cycle_counter  extends CrossM with Example
+  class cycle_counter (val scalaCross: String, val scalaJSCross: String) extends Example
 
   object elm_architecture extends CrossO[elm_architecture]
-  class elm_architecture extends CrossM with Example {
+  class elm_architecture(val scalaCross: String, val scalaJSCross: String) extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
   object swapi_driver extends CrossO[swapi_driver]
-  class swapi_driver  extends CrossM with Example
+  class swapi_driver (val scalaCross: String, val scalaJSCross: String) extends Example
 
   object zio_clock extends CrossO[zio_clock]
-  class zio_clock extends CrossM with Example {
+  class zio_clock(val scalaCross: String, val scalaJSCross: String) extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
 
   object route_history extends CrossO[route_history]
-  class route_history extends CrossM with Example {
+  class route_history(val scalaCross: String, val scalaJSCross: String) extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.urlDsl)
   }
 
