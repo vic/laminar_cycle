@@ -5,59 +5,49 @@ import com.raquo.laminar.api.L._
 
 private[core] trait Driver {
 
-  type UserMod[D, N <: Node]   = User[D, Mod[N]]
-  type CycleMod[D, N <: Node]  = Cycle[D, Mod[N], User[D, Mod[N]]]
-  type DriverMod[D, N <: Node] = Driver[D, Mod[N]]
+  type UserMod[D, E <: Element]   = User[D, Mod[E]]
+  type CycleMod[D, E <: Element]  = Cycle[D, Mod[E], User[D, Mod[E]]]
+  type DriverMod[D, E <: Element] = Driver[D, E]
 
   type UserEl[D]   = UserMod[D, Element]
   type CycleEl[D]  = CycleMod[D, Element]
   type DriverEl[D] = DriverMod[D, Element]
 
   /**
-    * Combine two binders into one.
+    * A Driver is basically a tuple of a `device` and a `binder`.
     *
-    * @see cycle#amend
-    * @tparam B - In most cases this will be a Laminar Modifier: `Mod[El]`
-    */
-  trait Bind[B] {
-    def apply(a: B, b: B): B
-  }
-
-  /**
-    * A Driver is basically a tuple of a `device` and a `binder` objects.
+    * A `device` is an object than can be given to a `User` function in order
+    * for it to produce a `B` result. In most cases the user function will return
+    * an `E` element itself, or a modifier `Mod[E]`.
     *
-    * A `device` is an object than can be given to a `Cycle` function in order
-    * for it to produce a `V`. In most cases V will be something like a
-    * Laminar Mod[El], like an Element view itself or an stream Binder.
+    * The `binder` object of this driver specifies how to connect the driver's
+    * inner streams. Most of the time it will be of type `Binder[E]` but can be
+    * any modifier `Mod[E]` or an element `E`
     *
-    * The `binder` object of this driver is a Laminar Binder[El] (or any Mod[El])
-    * that specifies how to connect the driver's inner streams in order for it to work.
+    * _Note:_ since drivers contain an inner binder that is actually a Laminar
+    * modifier `Mod[E]`, you must understand that Laminar's Modifiers are not
+    * guaranteed to be idempotent. Because of this, when you install a driver
+    * (by using it as a modifier on an element of your view tree)
+    * this driver's binder will be run.
     *
-    * Note, since a `binder` can be any Laminar modifier, you must understand
-    * Laminar modifier's semantics. Since mounting a driver in different places
-    * will invoke the driver's binder in those respective places (calling the modifier).
-    *
-    * If you want to share a driver devices into many sub-components, bind this driver
-    * only once and use the `Driver#cycle` method to obtain a re-usable cycle from
-    * this driver's devices.
+    * @see https://github.com/raquo/Laminar/blob/master/docs/Documentation.md#modifiers-faq
     *
     * @see #cycle - Obtain a re-usable cycle from this driver.
     * @see #apply - Install this driver, activating it's `binder`.
     *
-    * @param device
-    * @param binder
-    * @param emptyBinder
-    * @param bindFn
-    * @tparam D
-    * @tparam B
+    * @param device An object yielded to the user function.
+    * @param binder A `Mod[E]` modifier that setups this driver's inner streams subscriptions.
+    *
+    * @tparam D Type of the device this driver yields.
+    * @tparam E Type of the element this driver's binder is a modifier of.
     */
-  sealed class Driver[D, B] private[Driver] (
+  sealed class Driver[D, E <: Element] private[Driver] (
       private[core] val device: D,
-      private[core] val binder: B,
-      private[core] val emptyBinder: B,
-      private[core] val bindFn: Bind[B]
-  ) extends Cycle[D, B, User[D, B]]
-      with DriverOps[D, B] {
+      private[core] val binder: Mod[E]
+  ) extends Cycle[D, Mod[E], User[D, Mod[E]]] {
+
+    // Similar to Laminar.emptyMod but generic on node type.
+    private def emptyBinder[E0 <: Element]: Mod[E0] = new Modifier[E0] {}
 
     /**
       *
@@ -74,7 +64,8 @@ private[core] trait Driver {
       * @param user - A function taking this driver devices and producing it's own modifier.
       * @return The combination of this driver's binder and the result of the user function.
       */
-    override def apply(user: User[D, B]): B = bindFn(binder, cycle(user))
+    override def apply(user: User[D, Mod[E]]): Mod[E] =
+      amend[E](binder, cycle(user))
 
     /**
       * Obtain a Cycle function that can be passed around and invoked many times.
@@ -88,17 +79,18 @@ private[core] trait Driver {
       * @see #apply
       * @return A cycle function that only yields this driver devices.
       */
-    def cycle: Cycle[D, B, User[D, B]] = { user => user(device) }
+    def cycle: Cycle[D, Mod[E], User[D, Mod[E]]] = { user => user(device) }
 
     /**
       * Yields a copy of this driver that will never bind and will never
       * call it's user function.
       *
-      * @return
+      * @return A driver that will never bind
       */
-    def never: Driver[D, B] =
-      new Driver[D, B](device, emptyBinder, emptyBinder, bindFn) {
-        override def cycle: Cycle[D, B, User[D, B]] = _ => emptyBinder
+    def never: Driver[D, E] =
+      new Driver[D, E](device, emptyBinder[E]) {
+        override def cycle: Cycle[D, Mod[E], User[D, Mod[E]]] =
+          _ => emptyBinder[E]
       }
 
     /**
@@ -107,23 +99,30 @@ private[core] trait Driver {
       * Important Note: The new driver's binder does nothing.
       *
       * @see #liftCycle
+      * @tparam E0 Type of new driver's modified element.
       * @return A new driver encapsulating this one.
       */
-    def lift: Driver[Driver[D, B], B] =
-      copy(newDevice = this, newBinder = emptyBinder)
+    def lift[E0 >: E <: Element]: Driver[Driver[D, E], E0] =
+      new Driver[Driver[D, E], E0](
+        device = this,
+        binder = emptyBinder[E0]
+      )
 
     /**
       * Lowers a lifted driver into a single one, combining the contained's
       * and the container's `binder` objects into one.
       *
       * @param ev - evidence that this is a lifted driver.
-      * @tparam D0
+      * @tparam D0 Type of lifted device
+      * @tparam E0 Type of lifted modified element
       * @return
       */
-    def lower[D0](implicit ev: D <:< Driver[D0, B]): Driver[D0, B] =
-      copy(
-        newDevice = device.device,
-        newBinder = bindFn(binder, device.binder)
+    def lower[D0, E0 >: E <: Element](
+        implicit ev: D <:< Driver[D0, E0]
+    ): Driver[D0, E] =
+      new Driver[D0, E](
+        device = device.device,
+        binder = amend[E](binder, device.binder)
       )
 
     /**
@@ -138,79 +137,71 @@ private[core] trait Driver {
       *
       * @return An split new driver
       */
-    def liftCycle: Driver[Driver[D, B], B] =
-      copy(newDevice = copy(newDevice = device, newBinder = emptyBinder))
-
-    private[core] def copy[D2](
-        newDevice: D2 = device,
-        newBinder: B = binder
-    ): Driver[D2, B] =
-      new Driver(
-        device = newDevice,
-        binder = newBinder,
-        emptyBinder = emptyBinder,
-        bindFn = bindFn
+    def liftCycle[E0 >: E <: Element]: Driver[Driver[D, E0], E] =
+      new Driver[Driver[D, E0], E](
+        device = new Driver[D, E0](device, emptyBinder[E0]),
+        binder = binder
       )
 
-  }
+    def tuple: (D, Mod[E]) = device -> binder
 
-  object Driver {
-    def apply[D, El <: Element](device: D, mods: Mod[El]*) =
-      value(device, mods: _*)
-
-    def unapply[D, B](driver: Driver[D, B]): Option[(D, B)] =
-      Some(driver.tuple)
-
-    def value[D, El <: Element](device: D, mods: Mod[El]*): Driver[D, Mod[El]] =
-      new Driver[D, Mod[El]](
-        device,
-        cycle.amend[El](mods: _*),
-        emptyMod,
-        cycle.amend[El](_, _)
-      )
-
-    def unit[El <: Element]: Driver[Unit, Mod[El]] =
-      value[Unit, El](device = ())
-
-    def bind[El <: Element](mods: Mod[El]*) =
-      value[Unit, El](device = (), mods: _*)
-
-    implicit def fromTuple[D, El <: Element](
-        tuple: (D, Mod[El])
-    ): Driver[D, Mod[El]] =
-      value[D, El](device = tuple._1, mods = tuple._2)
-
-  }
-
-  trait DriverOps[D, B] { driver: Driver[D, B] =>
-    def tuple: (D, B) = driver.device -> driver.binder
-
-    def map[D2](f: D => D2): Driver[D2, B] =
-      copy(f(device))
+    def map[D2](f: D => D2): Driver[D2, E] =
+      new Driver[D2, E](f(device), binder)
 
     /** alias for #flatMap */
-    def >>=[D2](f: D => Driver[D2, B]): Driver[D2, B] = flatMap(f)
-    def flatMap[D2](f: D => Driver[D2, B]): Driver[D2, B] =
-      copy(f(device)).lower
+    def >>=[D2, E0 >: E <: Element](f: D => Driver[D2, E0]): Driver[D2, E] =
+      flatMap[D2, E0](f)
 
-    def flatten[D2](implicit ev: D <:< Driver[D2, B]): Driver[D2, B] =
-      lower
+    def flatMap[D2, E0 >: E <: Element](f: D => Driver[D2, E0]): Driver[D2, E] =
+      new Driver[Driver[D2, E0], E](f(device), binder).lower[D2, E0]
 
-    def withFilter(p: D => Boolean): Driver[Option[D], B] =
-      if (p(device)) driver.map(Some(_)) else never.map(_ => None)
+    def flatten[D2, E0 >: E <: Element](
+        implicit ev: D <:< Driver[D2, E0]
+    ): Driver[D2, E] =
+      lower[D2, E0]
+
+    def withFilter(p: D => Boolean): Driver[Option[D], E] =
+      if (p(device)) map(Some(_)) else never.map(_ => None)
 
     /** alias for #zip */
-    def ++[D2](other: Driver[D2, B]): Driver[(D, D2), B] = zip(other)
-    def zip[D2](other: Driver[D2, B]): Driver[(D, D2), B] =
-      copy(
-        newDevice = (device, other.device),
-        newBinder = bindFn(binder, other.binder)
+    def ++[D2, E0 >: E <: Element](other: Driver[D2, E0]): Driver[(D, D2), E] =
+      zip(other)
+    def zip[D2, E0 >: E <: Element](other: Driver[D2, E0]): Driver[(D, D2), E] =
+      new Driver[(D, D2), E](
+        device = (device, other.device),
+        binder = amend[E](binder, other.binder)
       )
 
     def map2[D0, D1, D2](
         f: (D0, D1) => D2
-    )(implicit ev: D <:< (D0, D1)): Driver[D2, B] =
+    )(implicit ev: D <:< (D0, D1)): Driver[D2, E] =
       map(d => f(d._1, d._2))
+
+  }
+
+  object Driver {
+    def apply[D, E <: Element](device: D, mods: Mod[E]*) =
+      value(device, mods: _*)
+
+    def unapply[D, E <: Element](driver: Driver[D, E]): Option[(D, Mod[E])] =
+      Some(driver.tuple)
+
+    def value[D, E <: Element](device: D, mods: Mod[E]*): Driver[D, E] =
+      new Driver[D, E](
+        device,
+        cycle.amend[E](mods: _*)
+      )
+
+    def unit[E <: Element]: Driver[Unit, E] =
+      value[Unit, E](device = ())
+
+    def bind[E <: Element](mods: Mod[E]*) =
+      value[Unit, E](device = (), mods: _*)
+
+    implicit def fromTuple[D, E <: Element](
+        tuple: (D, Mod[E])
+    ): Driver[D, E] =
+      value[D, E](device = tuple._1, mods = tuple._2)
 
   }
 
