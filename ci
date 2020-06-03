@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -e -o pipefail
 
-mkdir -p $HOME/bin
-export PATH=$HOME/bin:$PATH
-
 case "$1" in
 
  jitpack)
