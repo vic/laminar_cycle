@@ -291,11 +291,10 @@ Individual Drivers:
   an URL like, for example [urlsdl].
 
 
-###### [TEA][tea-driver-javadoc] ([source][tea-driver-source])
-  > Artifact: `com.github.vic.laminar_cycle::tea-driver::VERSION`
+###### [Mount][mount-driver-javadoc] ([source][mount-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::mount-driver::VERSION`
 
-  A simple driver that follows The Elm Architecture for updating
-  a current state with both: Pure and Effectful actions.
+  Convenience driver with event streams for mount and umount events.
 
 
 ###### [TEA][tea-driver-javadoc] ([source][tea-driver-source])
@@ -405,6 +404,9 @@ Automatically manages subscriptions between zio and Laminar streams.
 
 [state-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/state/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [state-driver-source]: drivers/state/src
+
+[mount-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/mount/2.13.2/1.1.0/docJar/dest/javadoc/index.html
+[mount-driver-source]: drivers/mount/src
 
 [history-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/history/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [history-driver-source]: drivers/history/src
