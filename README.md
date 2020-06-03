@@ -266,10 +266,9 @@ Individual Drivers:
 
 ###### [FetchDriver][fetch-driver-javadoc] ([source][fetch-driver-source])
 
-> Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
+  > Artifact: `com.github.vic.laminar_cycle::fetch-driver::VERSION`
 
-A cycle driver around DOM's `Fetch API` for executing HTTP requests.
-
+  A cycle driver around DOM's `Fetch API` for executing HTTP requests.
   
 ###### [StateDriver][state-driver-javadoc] ([source][state-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::state-driver::VERSION`
@@ -278,6 +277,27 @@ A cycle driver around DOM's `Fetch API` for executing HTTP requests.
   This way sub-components can have an inward view, just a layer of the outer 
   bigger state and their updates also get propagated outwards.
   
+###### [History][history-driver-javadoc] ([source][history-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::history-driver::VERSION`
+
+  The DOM History driver allows you to push/replace and get an stream
+  of current page state.
+
+###### [Router][router-driver-javadoc] ([source][router-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::router-driver::VERSION`
+
+  Stream based router driver. This driver does not depend directly but
+  can be used with the History driver and anything that can encode/decode
+  an URL like, for example [urlsdl].
+
+
+###### [TEA][tea-driver-javadoc] ([source][tea-driver-source])
+  > Artifact: `com.github.vic.laminar_cycle::tea-driver::VERSION`
+
+  A simple driver that follows The Elm Architecture for updating
+  a current state with both: Pure and Effectful actions.
+
+
 ###### [TEA][tea-driver-javadoc] ([source][tea-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::tea-driver::VERSION`
 
@@ -322,6 +342,18 @@ Automatically manages subscriptions between zio and Laminar streams.
 
   Effectful ZIO application that renders a Queue of Clock's nanoSeconds inside a
   Laminar view.
+  
+###### [SPA Router]  ([source][spa-router-source])
+
+  This example uses the History and Router drivers and [urldsl] to implement a mock
+  SPA (Single Page Application) social network.
+  
+  To start the SPA, clone this repo and run:
+  
+```bash
+./ci mill examples.spa_router.__.fastOpt
+./ci servor . examples/spa_router/src/index.html
+```
 
 ###### [SWAPIDriver] ([source][swapi-driver-source])
 
@@ -344,12 +376,16 @@ Automatically manages subscriptions between zio and Laminar streams.
 [senses-actuators]: https://cycle.js.org/img/actuators-senses.svg
 [cycle-dialogue]: https://cycle.js.org/dialogue.html
 [cycle-driver]: https://cycle.js.org/drivers.html
+[urldsl]: https://github.com/sherpal/url-dsl
 
 [Counter]: https://vic.github.io/laminar_cycle/examples/cycle_counter/src/index.html
 [counter-source]: examples/cycle_counter/src
 
 [Onion State]: https://vic.github.io/laminar_cycle/examples/onion_state/src/index.html
 [onion-source]: examples/onion_state/src
+
+[SPA Router]: https://vic.github.io/laminar_cycle/examples/spa_router/src/index.html
+[spa-router-source]: examples/spa_router/src
 
 [ZIO Clock]: https://vic.github.io/laminar_cycle/examples/zio_clock/src/index.html
 [zio-clock-source]: examples/zio_clock/src
@@ -369,6 +405,12 @@ Automatically manages subscriptions between zio and Laminar streams.
 
 [state-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/state/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [state-driver-source]: drivers/state/src
+
+[history-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/history/2.13.2/1.1.0/docJar/dest/javadoc/index.html
+[history-driver-source]: drivers/history/src
+
+[router-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/router/2.13.2/1.1.0/docJar/dest/javadoc/index.html
+[router-driver-source]: drivers/router/src
 
 [tea-driver-javadoc]: https://vic.github.io/laminar_cycle/out/drivers/tea/2.13.2/1.1.0/docJar/dest/javadoc/index.html
 [tea-driver-source]: drivers/tea/src

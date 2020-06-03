@@ -1,7 +1,8 @@
 // -*- scala -*-
 import ammonite.ops._
 import mill._
-import mill.define.{Cross, Sources, Target, Ctx}
+import mill.api.Loose
+import mill.define.{Cross, Ctx, Sources, Target}
 import mill.scalajslib._
 import mill.scalalib._
 import mill.scalalib.publish._
@@ -54,7 +55,7 @@ trait BaseModule extends ScalaJSModule {
   val scalaCross: String
   val scalaJSCross: String
 
-  override def scalaVersion: T[String] = scalaCross
+  override def scalaVersion: T[String]   = scalaCross
   override def scalaJSVersion: T[String] = scalaJSCross
   override def scalaJSWorkerVersion =
     "1.0" // TODO: remove when mill#894 is fixed
@@ -91,7 +92,9 @@ trait BaseModule extends ScalaJSModule {
 }
 
 object cycle extends CrossO[cycle]
-class cycle(val scalaCross: String, val scalaJSCross: String) extends BaseModule with PublishModule {
+class cycle(val scalaCross: String, val scalaJSCross: String)
+    extends BaseModule
+    with PublishModule {
   override def artifactName = "cycle-core"
   def publishVersion        = T { meta.publishVersion }
   def pomSettings           = T { meta.pomSettings }
@@ -104,7 +107,7 @@ object drivers extends Module {
   sealed trait Driver extends PublishModule with BaseModule {
     def publishVersion        = T { meta.publishVersion }
     def pomSettings           = T { meta.pomSettings }
-    def driverName = millOuterCtx.millSourcePath.last
+    def driverName            = millOuterCtx.millSourcePath.last
     override def artifactName = s"${driverName}-driver"
     override def moduleDeps   = super.moduleDeps ++ Seq(cycle())
   }
@@ -138,29 +141,37 @@ object drivers extends Module {
     }
   }
 
-  object fetch extends CrossO[fetch]
-  class fetch (val scalaCross: String, val scalaJSCross: String) extends Driver
+  object fetch                                                  extends CrossO[fetch]
+  class fetch(val scalaCross: String, val scalaJSCross: String) extends Driver
 
   object zio extends CrossO[zio]
   class zio(val scalaCross: String, val scalaJSCross: String) extends Driver {
     override def ivyDeps =
-      super.ivyDeps() ++ Agg(meta.deps.zioStreams)
+      super.ivyDeps() ++ Seq(meta.deps.zioStreams)
   }
 
-  object topic extends CrossO[topic]
-  class topic (val scalaCross: String, val scalaJSCross: String) extends Driver
+  object topic                                                  extends CrossO[topic]
+  class topic(val scalaCross: String, val scalaJSCross: String) extends Driver
 
-  object state extends CrossO[state]
-  class state (val scalaCross: String, val scalaJSCross: String) extends Driver
+  object state                                                  extends CrossO[state]
+  class state(val scalaCross: String, val scalaJSCross: String) extends Driver
 
-  object tea extends CrossO[tea]
-  class tea (val scalaCross: String, val scalaJSCross: String) extends Driver
+  object tea                                                  extends CrossO[tea]
+  class tea(val scalaCross: String, val scalaJSCross: String) extends Driver
 
-  object history extends CrossO[history]
-  class history (val scalaCross: String, val scalaJSCross: String) extends Driver
+  object history                                                  extends CrossO[history]
+  class history(val scalaCross: String, val scalaJSCross: String) extends Driver
 
-  object mount extends CrossO[mount]
-  class mount (val scalaCross: String, val scalaJSCross: String) extends Driver
+  object router extends CrossO[router]
+  class router(val scalaCross: String, val scalaJSCross: String)
+      extends Driver {
+    override def ivyDeps = super.ivyDeps() ++ Seq(
+      meta.deps.urlDsl.optional(true)
+    )
+  }
+
+  object mount                                                  extends CrossO[mount]
+  class mount(val scalaCross: String, val scalaJSCross: String) extends Driver
 
 }
 
@@ -171,25 +182,31 @@ object examples extends Module {
   }
 
   object onion_state extends CrossO[onion_state]
-  class onion_state (val scalaCross: String, val scalaJSCross: String) extends Example
+  class onion_state(val scalaCross: String, val scalaJSCross: String)
+      extends Example
 
   object cycle_counter extends CrossO[cycle_counter]
-  class cycle_counter (val scalaCross: String, val scalaJSCross: String) extends Example
+  class cycle_counter(val scalaCross: String, val scalaJSCross: String)
+      extends Example
 
   object elm_architecture extends CrossO[elm_architecture]
-  class elm_architecture(val scalaCross: String, val scalaJSCross: String) extends Example {
+  class elm_architecture(val scalaCross: String, val scalaJSCross: String)
+      extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
   object swapi_driver extends CrossO[swapi_driver]
-  class swapi_driver (val scalaCross: String, val scalaJSCross: String) extends Example
+  class swapi_driver(val scalaCross: String, val scalaJSCross: String)
+      extends Example
 
   object zio_clock extends CrossO[zio_clock]
-  class zio_clock(val scalaCross: String, val scalaJSCross: String) extends Example {
+  class zio_clock(val scalaCross: String, val scalaJSCross: String)
+      extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.javaTime)
   }
 
-  object route_history extends CrossO[route_history]
-  class route_history(val scalaCross: String, val scalaJSCross: String) extends Example {
+  object spa_router extends CrossO[spa_router]
+  class spa_router(val scalaCross: String, val scalaJSCross: String)
+      extends Example {
     override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.urlDsl)
   }
 
