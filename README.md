@@ -273,7 +273,7 @@ Individual Drivers:
 ###### [StateDriver][state-driver-javadoc] ([source][state-driver-source])
   > Artifact: `com.github.vic.laminar_cycle::state-driver::VERSION`
 
-  This driver allows you to have State-layers. See the [Onion] example.
+  This driver allows you to have State-layers. See the Onion example.
   This way sub-components can have an inward view, just a layer of the outer 
   bigger state and their updates also get propagated outwards.
   
@@ -288,7 +288,7 @@ Individual Drivers:
 
   Stream based router driver. This driver does not depend directly but
   can be used with the History driver and anything that can encode/decode
-  an URL like, for example [urlsdl].
+  an URL like, for example [urldsl].
 
 
 ###### [Mount][mount-driver-javadoc] ([source][mount-driver-source])
