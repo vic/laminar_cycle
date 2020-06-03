@@ -88,6 +88,11 @@ object Router {
     def relativeUrl(a: A): String
     def absoluteUrl(a: A): String
 
+    def apply()(implicit ev: Unit =:= A): String = absoluteUrl(())
+
+    def apply[P, Q](p: P, q: Q)(implicit ev: (P, Q) =:= A): String =
+      absoluteUrl(p -> q)
+
     def apply(a: A): String = absoluteUrl(a)
 
     val here: R

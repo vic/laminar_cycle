@@ -113,7 +113,7 @@ object Example {
         h4("Footer links"),
         nav(
           li(
-            a("Go to Landing page", href := routes.landing(()))
+            a("Go to Landing page", href := routes.landing())
           ),
           li(
             a(
@@ -133,9 +133,8 @@ object Example {
         h3(user.username, "'s HomePage"),
         a(
           "Mutual followers",
-          href := routes.user.followers(
-            user -> Followers.Params(mutual = Some(true))
-          )
+          href := routes.user
+            .followers(user, Followers.Params(mutual = Some(true)))
         )
       )
     }
