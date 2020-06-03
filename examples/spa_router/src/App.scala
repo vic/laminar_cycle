@@ -117,8 +117,8 @@ object Example {
           ),
           li(
             a(
-              "Go to oweiuwq's Home",
-              href := routes.user(User("oeiuwq"))
+              "Go to vic's Home",
+              href := routes.user(User("vic"))
             )
           )
         )
