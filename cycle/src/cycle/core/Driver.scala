@@ -143,6 +143,12 @@ private[core] trait Driver {
         binder = binder
       )
 
+    def liftTuple[E0 >: E <: Element]: Driver[(D, Mod[E]), E0] =
+      new Driver[(D, Mod[E]), E0](
+        device = tuple,
+        binder = emptyBinder[E0]
+      )
+
     def tuple: (D, Mod[E]) = device -> binder
 
     def map[D2](f: D => D2): Driver[D2, E] =
