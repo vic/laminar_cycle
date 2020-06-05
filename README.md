@@ -323,6 +323,7 @@ Automatically manages subscriptions between zio and Laminar streams.
 ## Examples
 
 ###### [Counter] ([source][counter-source])
+> `./ci example cycle_counter`
 
   Runnable implementation of the counter example on README.md.
   
@@ -330,31 +331,32 @@ Automatically manages subscriptions between zio and Laminar streams.
   the current state and update a view based on it.
   
 ###### [Onion State] ([source][onion-source])
+> `./ci example onion_state`
 
   Shows basic usage of the State driver in an Onion-layered app.
   
 ###### [ELM] ([source][elm-source])
+> `./ci example elm_architecture`
 
   Sample using the [The Elm Architecture][tea-driver-source] to implement a sampler.
   
 ###### [ZIO Clock]  ([source][zio-clock-source])
+> `./ci example zio_clock`
 
   Effectful ZIO application that renders a Queue of Clock's nanoSeconds inside a
   Laminar view.
   
 ###### [SPA Router]  ([source][spa-router-source])
+> `./ci example spa_router`
+
 
   This example uses the History and Router drivers and [urldsl] to implement a mock
   SPA (Single Page Application) social network.
   
   To start the SPA, clone this repo and run:
   
-```bash
-./ci mill examples.spa_router.__.fastOpt
-./ci servor . examples/spa_router/src/index.html
-```
-
 ###### [SWAPIDriver] ([source][swapi-driver-source])
+> `./ci example swapi_driver`
 
   Search StartWars characters by name.
   
