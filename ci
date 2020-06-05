@@ -58,6 +58,14 @@ case "$1" in
    $0 mill  __.compile
  ;;
 
+ example)
+   trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM SIGKILL EXIT
+   $0 mill examples.$2.__.fastOpt
+   $0 servor . examples/$2/src/index.html &
+   $0 mill -w examples.$2.__.fastOpt &
+   wait
+ ;;
+
  mill-i)
    $0 cs launch mill-interactive -- -i "${@:2}"
  ;;
