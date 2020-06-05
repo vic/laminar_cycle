@@ -4,8 +4,8 @@ set -e -o pipefail
 case "$1" in
 
  jitpack)
-   $0 mill-i -D publish-full-sjs=false __.publishM2Local
-   $0 mill-i -D publish-full-sjs=true  __.publishM2Local
+   $0 mill-i -j 0 -D publish-full-sjs=false __.publishM2Local
+   $0 mill-i -j 0 -D publish-full-sjs=true  __.publishM2Local
  ;;
 
  servor)
@@ -13,7 +13,7 @@ case "$1" in
  ;;
 
  gh-pages)
-   $0 mill '{__.docJar,examples.__.fastOpt}'
+   $0 mill -j 0 '{__.docJar,examples.__.fastOpt}'
    find out -path '*docJar/dest/out.jar' | xargs -IFILE bash -c 'jar -xf FILE -C $(dirname FILE) /'
    mkdir -p gh-pages
    cp -rfv docs/index* docs/404* README.md docs/ examples/ gh-pages/
@@ -56,14 +56,14 @@ case "$1" in
  ;;
 
  test)
-   $0 mill  __.compile
+   $0 mill -j 0 __.compile
  ;;
 
  example)
    trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM SIGKILL EXIT
-   $0 mill examples.$2.__.fastOpt
+   $0 mill -j 0 examples.$2.__.fastOpt
    $0 servor . examples/$2/src/index.html &
-   $0 mill -w examples.$2.__.fastOpt &
+   $0 mill -w -j 0 examples.$2.__.fastOpt &
    wait
  ;;
 
