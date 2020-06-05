@@ -99,9 +99,10 @@ object cycle extends CrossO[cycle]
 class cycle(val scalaCross: String, val scalaJSCross: String)
     extends BaseModule
     with PublishModule {
-  override def artifactScalaJSVersion: T[String] =
-    if (meta.publishFullSjs) scalaJSVersion()
-    else super.artifactScalaJSVersion()
+
+  override def artifactId: T[String] =
+    if (meta.publishFullSjs) s"${artifactName()}_sjs${scalaJSVersion()}_${artifactScalaVersion()}"
+    else super.artifactId()
   override def artifactName = "cycle-core"
   override def publishVersion        = T { meta.publishVersion }
   override def pomSettings           = T { meta.pomSettings }
@@ -115,9 +116,9 @@ object drivers extends Module {
     def publishVersion        = T { meta.publishVersion }
     def pomSettings           = T { meta.pomSettings }
     def driverName            = millOuterCtx.millSourcePath.last
-    override def artifactScalaJSVersion: T[String] =
-      if (meta.publishFullSjs) scalaJSVersion()
-      else super.artifactScalaJSVersion()
+    override def artifactId: T[String] =
+      if (meta.publishFullSjs) s"${artifactName()}_sjs${scalaJSVersion()}_${artifactScalaVersion()}"
+      else super.artifactId()
     override def artifactName = s"${driverName}-driver"
     override def moduleDeps   = super.moduleDeps ++ Seq(cycle())
   }
