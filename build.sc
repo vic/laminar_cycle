@@ -7,17 +7,21 @@ import mill.scalajslib._
 import mill.scalalib._
 import mill.scalalib.publish._
 
+import scala.util.Properties
+
 abstract class CrossO[T](implicit ci: Cross.Factory[T], ctx: Ctx)
     extends Cross[T](meta.crossVersions: _*)
 
 object meta {
   val crossVersions: Seq[(String, String)] = for {
     scala   <- Seq("2.13.2", "2.12.11")
-    scalajs <- Seq("1.1.0")
+    scalajs <- Seq("1.1.0", "1.0.1")
   } yield (scala, scalajs)
 
   val laminarVersion = "0.9.1"
   val zioVersion     = "1.0.0-RC19"
+
+  val publishFullSjs = Properties.propIsSetTo("publish-full-sjs", "true")
 
   val publishVersion = {
     implicit val wd: os.Path = os.pwd
@@ -95,9 +99,12 @@ object cycle extends CrossO[cycle]
 class cycle(val scalaCross: String, val scalaJSCross: String)
     extends BaseModule
     with PublishModule {
+  override def artifactScalaJSVersion: T[String] =
+    if (meta.publishFullSjs) scalaJSVersion()
+    else super.artifactScalaJSVersion()
   override def artifactName = "cycle-core"
-  def publishVersion        = T { meta.publishVersion }
-  def pomSettings           = T { meta.pomSettings }
+  override def publishVersion        = T { meta.publishVersion }
+  override def pomSettings           = T { meta.pomSettings }
   override def ivyDeps =
     super.ivyDeps() ++ Agg(meta.deps.laminar)
 }
@@ -108,6 +115,9 @@ object drivers extends Module {
     def publishVersion        = T { meta.publishVersion }
     def pomSettings           = T { meta.pomSettings }
     def driverName            = millOuterCtx.millSourcePath.last
+    override def artifactScalaJSVersion: T[String] =
+      if (meta.publishFullSjs) scalaJSVersion()
+      else super.artifactScalaJSVersion()
     override def artifactName = s"${driverName}-driver"
     override def moduleDeps   = super.moduleDeps ++ Seq(cycle())
   }

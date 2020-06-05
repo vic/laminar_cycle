@@ -4,7 +4,8 @@ set -e -o pipefail
 case "$1" in
 
  jitpack)
-   $0 cs launch --jvm graalvm-ce-java11:20.1.0 mill -- __.publishM2Local
+   $0 cs launch --jvm graalvm-ce-java11:20.1.0 mill-i -- -D publish-full-sjs=false __.publishM2Local
+   $0 cs launch --jvm graalvm-ce-java11:20.1.0 mill-i -- -D publish-full-sjs=true  __.publishM2Local
  ;;
 
  servor)
