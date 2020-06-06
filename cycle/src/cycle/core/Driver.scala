@@ -3,7 +3,7 @@ import cycle._
 
 import com.raquo.laminar.api.L._
 
-private[core] trait Driver {
+private[core] trait DriverMeta {
 
   type UserMod[D, E <: Element]   = User[D, Mod[E]]
   type CycleMod[D, E <: Element]  = Cycle[D, Mod[E], User[D, Mod[E]]]
