@@ -4,12 +4,13 @@ set -e -o pipefail
 case "$1" in
 
  jitpack)
-   $0 mill-i -j 0 -D publish-full-sjs=false __.publishM2Local
-   $0 mill-i -j 0 -D publish-full-sjs=true  __.publishM2Local
+   $0 mill-i -j 0 -D publish-full-sjs=true  __.publishM2Local &
+   $0 mill-i -j 0 -D publish-full-sjs=false __.publishM2Local &
+   wait
  ;;
 
  servor)
-   npx servor ${2:-"gh-pages"} ${3:-"index.html"} 8888 --reload --browse
+   exec npx servor ${2:-"gh-pages"} ${3:-"index.html"} 8888 --reload --browse
  ;;
 
  gh-pages)
@@ -27,11 +28,11 @@ case "$1" in
      curl -o cs -qL https://git.io/coursier-cli
      chmod +x cs
    }
-   ./cs "${@:2}"
+   exec ./cs "${@:2}"
  ;;
 
  scalafmt)
-   $0 cs launch scalafmt -- --mode diff --diff-branch master "${@:2}"
+   exec $0 cs launch scalafmt -- --mode diff --diff-branch master "${@:2}"
  ;;
 
  mdoc-gen)
@@ -40,23 +41,23 @@ case "$1" in
  ;;
 
  mdoc)
-   $0 mdoc- "" "${@:2}"
+   exec $0 mdoc- "" "${@:2}"
  ;;
 
  mdoc-js)
-   $0 mdoc- -js "${@:2}"
+   exec $0 mdoc- -js "${@:2}"
  ;;
 
  mdoc-)
-   $0 cs launch org.scalameta:mdoc${2}_2.12:2.2.0 --extra-jars out/drivers/all/mdocProperties/dest/ -- "${@:3}"
+   exec $0 cs launch org.scalameta:mdoc${2}_2.12:2.2.0 --extra-jars out/drivers/all/mdocProperties/dest/ -- "${@:3}"
  ;;
 
  mill)
-   $0 cs launch mill -- "${@:2}"
+   exec $0 cs launch mill -- "${@:2}"
  ;;
 
  test)
-   $0 mill -j 0 __.compile
+   exec $0 mill -j 0 __.compile
  ;;
 
  example)
@@ -68,7 +69,7 @@ case "$1" in
  ;;
 
  mill-i)
-   $0 cs launch mill-interactive -- -i "${@:2}"
+   exec $0 cs launch mill-interactive -- -i "${@:2}"
  ;;
 
 esac
