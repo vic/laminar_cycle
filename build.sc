@@ -15,7 +15,7 @@ abstract class CrossO[T](implicit ci: Cross.Factory[T], ctx: Ctx)
 object meta {
   val crossVersions: Seq[(String, String)] = for {
     scala   <- Seq("2.13.2", "2.12.11")
-    scalajs <- Seq("1.1.0", "1.0.1")
+    scalajs <- Seq("1.1.0")
   } yield (scala, scalajs)
 
   val laminarVersion = "0.9.1"
