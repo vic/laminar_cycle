@@ -53,8 +53,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Asdf install
-        uses: asdf-vm/actions/install@v1.0.0
       - name: Build pages
         run:  ./ci gh-pages
       - name: Deploy pages
