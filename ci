@@ -4,7 +4,7 @@ set -e -o pipefail
 case "$1" in
 
  jitpack)
-   exec $0 mill-i -j 0 __.publishM2Local
+   exec $0 mill -j 0 __.publishM2Local
  ;;
 
  servor)
@@ -51,7 +51,11 @@ case "$1" in
  ;;
 
  mill)
-   exec $0 cs launch mill -- "${@:2}"
+   exec $0 cs launch --scala "$(grep scala .tool-versions | cut -d' ' -f2)" mill -- "${@:2}"
+ ;;
+
+ mill-i)
+   exec $0 cs launch --scala "$(grep scala .tool-versions | cut -d' ' -f2)" mill-interactive -- -i "${@:2}"
  ;;
 
  test)
@@ -64,10 +68,6 @@ case "$1" in
    $0 servor . examples/$2/src/index.html &
    $0 mill -w -j 0 examples.$2.__.fastOpt &
    wait
- ;;
-
- mill-i)
-   exec $0 cs launch mill-interactive -- -i "${@:2}"
  ;;
 
 esac

@@ -14,7 +14,7 @@ abstract class CrossO[T](implicit ci: Cross.Factory[T], ctx: Ctx)
 
 object meta {
   val crossVersions: Seq[(String, String)] = for {
-    scala   <- Seq("2.13.2", "2.12.11")
+    scala   <- Seq("2.13.3", "2.12.12")
     scalajs <- Seq("1.1.0")
   } yield (scala, scalajs)
 
@@ -61,8 +61,6 @@ trait BaseModule extends ScalaJSModule {
 
   override def scalaVersion: T[String]   = scalaCross
   override def scalaJSVersion: T[String] = scalaJSCross
-  override def scalaJSWorkerVersion =
-    "1.0" // TODO: remove when mill#894 is fixed
 
   implicit object resolver extends Cross.Resolver[BaseModule] {
     def resolve[V <: BaseModule](c: Cross[V]): V =
