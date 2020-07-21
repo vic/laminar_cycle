@@ -27,7 +27,6 @@ object History {
     val state: State
   }
   case class Read private (state: State = readState)     extends Event
-  case class Pushed private (state: State = readState)   extends Event
   case class Replaced private (state: State = readState) extends Event
   case class Popped private (state: State = readState)   extends Event
   case class Hidden private (state: State = readState)   extends Event
@@ -53,9 +52,9 @@ object History {
       .collect[Option[Action]] {
         case ReadState =>
           Some(ReadState)
-        case a @ PushState(state) =>
+        case PushState(state) =>
           dom.window.history.pushState(state.data, state.title, state.href)
-          Some(a)
+          None
         case a @ ReplaceState(state) =>
           dom.window.history.replaceState(state.data, state.title, state.href)
           Some(a)
@@ -74,7 +73,6 @@ object History {
     val reads: EventStream[Event] = EventStream.merge(
       exec.collect {
         case ReadState       => Read()
-        case _: PushState    => Pushed()
         case _: ReplaceState => Replaced()
       },
       onPopState.mapTo(Popped()),
