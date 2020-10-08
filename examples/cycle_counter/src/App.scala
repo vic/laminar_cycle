@@ -63,8 +63,12 @@ object Counter {
 
 }
 
-object Main extends App {
+object Main {
   val state   = EIO[Counter.State]
   val actions = EIO[Counter.Action]
-  render(dom.document.getElementById("app"), Counter(state, actions))
+
+  def main(args: Array[String]): Unit = {
+    println("BAR")
+    render(dom.document.getElementById("app"), Counter(state, actions))
+  }
 }

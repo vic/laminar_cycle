@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -o pipefail
+set -ex -o pipefail
 
 case "$1" in
 
@@ -8,7 +8,7 @@ case "$1" in
  ;;
 
  servor)
-   exec npx servor ${2:-"gh-pages"} ${3:-"index.html"} 8888 --reload --browse
+   exec npx servor ${2:-"gh-pages"} ${3:-"index.html"} 8888 --reload --browse --static
  ;;
 
  gh-pages)
@@ -51,11 +51,11 @@ case "$1" in
  ;;
 
  mill)
-   exec $0 cs launch --scala "$(grep scala .tool-versions | cut -d' ' -f2)" mill -- "${@:2}"
+   exec $0 cs launch --scala "$(awk '/^scala/{print$2}' .tool-versions)" mill:"$(< .mill-version)" -- "${@:2}"
  ;;
 
  mill-i)
-   exec $0 cs launch --scala "$(grep scala .tool-versions | cut -d' ' -f2)" mill-interactive -- -i "${@:2}"
+   exec $0 cs launch --scala "$(awk '/^scala/{print$2}' .tool-versions)"  mill-interactive:"$(< .mill-version)" -- -i "${@:2}"
  ;;
 
  test)
@@ -63,11 +63,8 @@ case "$1" in
  ;;
 
  example)
-   trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM SIGKILL EXIT
-   $0 mill -j 0 examples.$2.__.fastOpt
-   $0 servor . examples/$2/src/index.html &
-   $0 mill -w -j 0 examples.$2.__.fastOpt &
-   wait
+   trap "trap - SIGTERM && kill -9 -- -$$" SIGINT SIGTERM SIGKILL EXIT
+   $0 mill -w "examples.{__.fastOpt,serve}" "$2"
  ;;
 
 esac
