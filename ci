@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -ex -o pipefail
 
+BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 case "$1" in
 
  jitpack)
@@ -33,6 +35,10 @@ case "$1" in
    exec $0 cs launch scalafmt -- --mode diff --diff-branch master "${@:2}"
  ;;
 
+ scalafmt-test)
+   exec $0 scalafmt --test
+ ;;
+
  mdoc-gen)
    $0 mill drivers.all._.mdocProperties
    $0 mdoc-js -i docs/doc1.md -o docs/doc2.md
@@ -51,11 +57,11 @@ case "$1" in
  ;;
 
  mill)
-   exec $0 cs launch --scala "$(awk '/^scala/{print$2}' .tool-versions)" mill:"$(< .mill-version)" -- "${@:2}"
+   exec $0 cs launch --scala "$(awk '/^scala/{print$2}' $BASE_DIR/.tool-versions)" mill:"$(< $BASE_DIR/.mill-version)" -- "${@:2}"
  ;;
 
  mill-i)
-   exec $0 cs launch --scala "$(awk '/^scala/{print$2}' .tool-versions)"  mill-interactive:"$(< .mill-version)" -- -i "${@:2}"
+   exec $0 cs launch --scala "$(awk '/^scala/{print$2}' $BASE_DIR/.tool-versions)"  mill-interactive:"$(< $BASE_DIR/.mill-version)" -- -i "${@:2}"
  ;;
 
  test)
