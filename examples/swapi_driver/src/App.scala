@@ -55,7 +55,7 @@ object Example {
 
     val viewSearchResults: EventStream[Div] = swapi.collect {
       case (req: SWAPI.FindPeople, res: SWAPI.FoundPeople) => req -> res
-    }.map2(renderFoundPeople)
+    }.mapN(renderFoundPeople)
 
     div(
       searchForm(currentSearch, text, submit),

@@ -29,8 +29,8 @@ private[core] trait Bijection {
       fwd: A => B,
       bwd: (B, A) => A
   ): MemBijection[A, B] = MemBijection(
-    fwd = _.composeChangesAndInitial(_.map(fwd), _.map(fwd)),
-    bwd = _.map2(bwd)
+    fwd = _.composeAll(_.map(fwd), _.map(fwd)),
+    bwd = _.mapN(bwd)
   )
 
   def emoBiject[A, B](

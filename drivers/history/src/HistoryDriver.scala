@@ -42,12 +42,12 @@ object History {
     val state       = new EventBus[State]
     val stateSignal = state.events.toSignal(readState)
 
-    val onPopState: EventStream[PopStateEvent] =
-      windowEvents.onPopState.eventStream
-    val onPageHide: EventStream[PageTransitionEvent] =
-      windowEvents.onPageHide.eventStream
-    val onPageShow: EventStream[PageTransitionEvent] =
-      windowEvents.onPageShow.eventStream
+    val onPopState =
+      windowEvents.onPopState
+    val onPageHide =
+      windowEvents.onPageHide
+    val onPageShow =
+      windowEvents.onPageShow
 
     val exec = pio
       .collect[Option[Action]] {

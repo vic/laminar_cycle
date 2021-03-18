@@ -82,7 +82,7 @@ object Example {
   implicit val bijGlobalToLocal: MemBijection[Global, Local] = implicitly
 
   implicit def globalToLocal(global: Signal[Global]): Signal[Local] = {
-    global.composeChangesAndInitial[Local](
+    global.composeAll[Local](
       operator = globalStream =>
         globalStream.map(_.local).collect { case Some(local) => local },
       initialOperator = tryGlobal =>

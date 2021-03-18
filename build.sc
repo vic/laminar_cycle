@@ -18,7 +18,7 @@ object meta {
     scalajs <- Seq("1.4.0")
   } yield (scala, scalajs)
 
-  val laminarVersion = "0.9.1"
+  val laminarVersion = "0.12.1"
   val zioVersion     = "1.0.4"
 
   val publishFullSjs = Properties.propIsSetTo("publish-full-sjs", "true")

@@ -18,7 +18,7 @@ object TEA {
     val effects = actions.compose(selectEffect)
 
     val fromPure =
-      pures.withCurrentValueOf(state).map2(performPure)
+      pures.withCurrentValueOf(state).mapN(performPure)
     val fromEffect = effects.flatMap(performEffect)
 
     val newStates = fromPure.map(_._1)
