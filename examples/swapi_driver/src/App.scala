@@ -45,11 +45,12 @@ object Example {
       text: EIO[String],
       submit: EIO[Unit]
   ): Mod[Element] = {
-    val currentSearch = text.startWith("")
+    val currentSearch: Signal[String] = text.startWith("")
 
-    val findPeopleReqs: EventStream[SWAPI.FindPeople] = submit
+    val s: EventStream[Unit] = submit
+    val findPeopleReqs: EventStream[SWAPI.FindPeople] = s
       .withCurrentValueOf(currentSearch)
-      .map(_._2.trim)
+      .map(_.trim)
       .filterNot(_.isEmpty)
       .map(SWAPI.FindPeople(_))
 

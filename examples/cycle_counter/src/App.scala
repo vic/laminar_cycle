@@ -51,8 +51,10 @@ object Counter {
   def apply(state: EIO[State], actions: EIO[Action]): Div = {
     val currentState: Signal[State] = state.startWith(initialState)
 
-    val updatedState: EventStream[State] =
-      actions.withCurrentValueOf(currentState).mapN(performAction)
+    val updatedState: EventStream[State] = {
+      val a: EventStream[Action] = actions
+      a.withCurrentValueOf(currentState).mapN { case (action, state) => performAction(action, state) }
+    }
 
     div(
       counterView(currentState),

@@ -83,7 +83,7 @@ object Example {
 
   implicit def globalToLocal(global: Signal[Global]): Signal[Local] = {
     global.composeAll[Local](
-      operator = globalStream =>
+      changesOperator = globalStream =>
         globalStream.map(_.local).collect { case Some(local) => local },
       initialOperator = tryGlobal =>
         tryGlobal.map(_.local).collect { case Some(local) => local }

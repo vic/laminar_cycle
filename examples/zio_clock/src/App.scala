@@ -49,7 +49,7 @@ object Main extends zio.App {
     render(dom.document.getElementById("app"), div(clock))
   }
 
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
-    app.as(0).tapCause { cause => UIO(dom.console.error(cause.toString)) }
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] =
+    app.tapCause { cause => UIO(dom.console.error(cause.toString)) }.as(ExitCode.success)
 
 }
