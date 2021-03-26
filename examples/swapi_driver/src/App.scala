@@ -1,0 +1,78 @@
+package example.swapi_driver
+
+import com.raquo.laminar.api.L._
+import org.scalajs.dom
+
+import cycle._
+
+object Example {
+
+  def searchForm(
+      current: Observable[String],
+      search: Observer[String],
+      submit: Observer[Unit]
+  ): Div =
+    div(
+      form(
+        "Search an StartWars character:",
+        input(
+          tpe := "text",
+          value <-- current,
+          inContext { input =>
+            input.events(onKeyUp).delay(666).mapTo(input.ref.value) --> search
+          }
+        ),
+        button(tpe := "submit", "Search"),
+        inContext { form =>
+          form
+            .events(onSubmit.preventDefault.stopPropagation)
+            .mapTo(()) --> submit
+        }
+      )
+    )
+
+  def renderFoundPeople(req: SWAPI.FindPeople, res: SWAPI.FoundPeople): Div = {
+    div(
+      h5("Search Results for ", req.search),
+      ol(
+        res.people.map { person => li(strong(person.name)) }
+      )
+    )
+  }
+
+  def cycled(
+      swapi: SWAPIDriver.UserIO,
+      text: EIO[String],
+      submit: EIO[Unit]
+  ): Mod[Element] = {
+    val currentSearch: Signal[String] = text.startWith("")
+
+    val s: EventStream[Unit] = submit
+    val findPeopleReqs: EventStream[SWAPI.FindPeople] = s
+      .withCurrentValueOf(currentSearch)
+      .map(_.trim)
+      .filterNot(_.isEmpty)
+      .map(SWAPI.FindPeople(_))
+
+    val viewSearchResults: EventStream[Div] = swapi.collect {
+      case (req: SWAPI.FindPeople, res: SWAPI.FoundPeople) => req -> res
+    }.mapN(renderFoundPeople)
+
+    div(
+      searchForm(currentSearch, text, submit),
+      child <-- viewSearchResults,
+      findPeopleReqs --> swapi
+    )
+  }
+
+  def apply(): Div = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    div(
+      SWAPIDriver { swapi => cycled(swapi, EIO[String], EIO[Unit]) }
+    )
+  }
+}
+
+object Main extends App {
+  render(dom.document.getElementById("app"), Example())
+}
