@@ -1,32 +1,33 @@
 // -*- scala -*-
-import ammonite.ops._
 import mill._
 import mill.define.{Cross, Ctx, Sources, Target}
 import mill.scalajslib._
 import mill.scalalib._
 import mill.scalalib.publish._
 import zio.Task
+import os._
 
+import scala.reflect.ClassTag
 import scala.util.Properties
 
-abstract class CrossO[T](implicit ci: Cross.Factory[T], ctx: Ctx)
+abstract class CrossO[T: ClassTag](implicit ci: Cross.Factory[T], ctx: Ctx)
     extends Cross[T](meta.crossVersions: _*)
 
 object meta {
   val crossVersions: Seq[(String, String)] = for {
-    scala   <- Seq("2.13.3", "2.12.12")
-    scalajs <- Seq("1.4.0")
+    scala   <- Seq("2.13.8")
+    scalajs <- Seq("1.10.1")
   } yield (scala, scalajs)
 
-  val laminarVersion = "0.12.1"
+  val laminarVersion = "0.14.1"
   val zioVersion     = "1.0.4"
 
   val publishFullSjs = Properties.propIsSetTo("publish-full-sjs", "true")
 
   val publishVersion = {
     implicit val wd: os.Path = os.pwd
-    val short                = %%("git", "rev-parse", "--short", "HEAD").out.trim
-    val release              = %%("git", "tag", "-l", "-n0", "--points-at", "HEAD").out.trim
+    val short                = os.proc("git", "rev-parse", "--short", "HEAD").call().out.trim
+    val release              = os.proc("git", "tag", "-l", "-n0", "--points-at", "HEAD").call().out.trim
     release match {
       case "" => short
       case _  => release
@@ -50,7 +51,7 @@ object meta {
     val zio        = ivy"dev.zio::zio::${zioVersion}"
     val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
     val javaTime   = ivy"io.github.cquiroz::scala-java-time::2.0.0"
-    val urlDsl     = ivy"be.doeraene::url-dsl::0.2.0"
+    val urlDsl     = ivy"be.doeraene::url-dsl::0.4.0"
     val izumiBio   = ivy"io.7mind.izumi::fundamentals-bio::0.10.10"
   }
 }
@@ -251,7 +252,7 @@ object webserver extends zio.App {
     os.pwd / os.RelPath(s"out/examples/${path.segments.head}/$scalaVersion/$sjsVersion/fastOpt/dest/${path.last}")
   }.toOption
 
-  def jsExists(req: Request): Boolean = jsPath(req).exists(_.isFile)
+  def jsExists(req: Request): Boolean = jsPath(req).exists(os.isFile)
 
   def exampleExists(req: Request): Boolean = exampleModule(req).isDefined
 
@@ -259,7 +260,7 @@ object webserver extends zio.App {
     val paths = req.uri.getPath.stripPrefix("/").stripSuffix("/").split('/')
     assert(paths.size == 1)
     val js = os.pwd / os.RelPath(s"out/examples/${paths.head}/$scalaVersion/$sjsVersion/fastOpt/dest/out.js")
-    assert(js.isFile)
+    assert(os.isFile(js))
     paths.head
   }.toOption
 
