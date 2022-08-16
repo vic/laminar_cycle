@@ -1,5 +1,7 @@
-package cyle
+package cycle.core
 
+import com.raquo.airstream.core.Sink
+import com.raquo.airstream.core.Source.SignalSource
 import com.raquo.laminar.api.L._
 
 trait StateHolder[S] extends SignalSource[S] with Sink[S] { self =>
@@ -12,13 +14,14 @@ trait StateHolder[S] extends SignalSource[S] with Sink[S] { self =>
 
 object StateHolder {
   def fromValue[S](s: => S): StateHolder[S] = new StateHolder[S] {
-    val stateBus: EventBus[S]            = new EventBus
-    val stateSignal: Signal[S]           = stateBus.events.toSignal(s)
+    val stateBus: EventBus[S] = new EventBus
+    val stateSignal: Signal[S] = stateBus.events.toSignal(s)
     override def toObservable: Signal[S] = stateSignal
     override def toObserver: Observer[S] = stateBus.toObserver
   }
 
-  def fromSourceSink[S](source: SignalSource[S], sink: Sink[S]): StateHolder[S] =
+  def fromSourceSink[S](source: SignalSource[S],
+                        sink: Sink[S]): StateHolder[S] =
     new StateHolder[S] {
       override def toObservable: Signal[S] = source.toObservable
       override def toObserver: Observer[S] = sink.toObserver

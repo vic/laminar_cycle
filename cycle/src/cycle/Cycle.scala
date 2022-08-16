@@ -1,10 +1,13 @@
-package cyle
+package cycle
 
+import com.raquo.airstream.core.Sink
+import com.raquo.airstream.core.Source.EventSource
 import com.raquo.laminar.api.L._
 import com.raquo.laminar.nodes.ReactiveElement
+import cycle.core._
 
 trait Cycle[-In, +State, +Out] extends Sink[In] with EventSource[Out] {
-  val stateSignal: Signal[State]
+  def stateSignal: Signal[State]
   def bind[E <: ReactiveElement.Base]: Mod[E]
 }
 
