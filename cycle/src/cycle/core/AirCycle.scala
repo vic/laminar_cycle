@@ -7,45 +7,59 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-private[cycle] abstract class AirCycle[I, S, O] private[cycle] ()
-    extends cycle.Cycle[I, S, O] with EventTypes[I, S, O] {
+private[cycle] trait AirCycle[I, S, O] extends cycle.Cycle[I, S, O] {
+
+  protected[cycle] type Event
+  protected[cycle] final type InputHandler = EventStream[I] => EventStream[Event]
+  protected[cycle] val withStateFilter: EventStream[Event] => EventStream[S => EventStream[Event]]
+  protected[cycle] val setStateFiler: EventStream[Event] => EventStream[S]
+  protected[cycle] val outFilter: EventStream[Event] => EventStream[O]
+  protected[cycle] val withHandlerFilter: EventStream[Event] => EventStream[InputHandler => EventStream[Event]]
+  protected[cycle] val setHandlerFilter: EventStream[Event] => EventStream[InputHandler]
+  protected[cycle] val inputFilter: EventStream[Event] => EventStream[I]
+  protected[cycle] val noopFilter: EventStream[Event] => EventStream[Any]
+
+  protected[cycle] def inEvent(i: I): Event
 
   protected[cycle] val stateHolder: StateHolder[S]
-  protected[cycle] def initialHandler: InputHandler
+  protected[cycle] val initialHandler: InputHandler
 
   override def stateSignal: Signal[S] = stateHolder.toObservable
 
-  override def toObserver: Observer[I] =
-    eventBus.writer.contramap(new In(_))
+  override def toObserver: Observer[I] = eventBus.writer.contramap(inEvent)
 
   override def toObservable: EventStream[O] = outStream
 
-  val eventBus: EventBus[Event] =
-    new EventBus()
+  val eventBus: EventBus[Event] = new EventBus()
 
   val loopbackFromCurrentState: EventStream[Event] =
     eventBus.events
-      .collect { case CurrentState(f) => f }
+      .compose(withStateFilter)
       .withCurrentValueOf(stateSignal)
-      .flatMap { case (withState, state) => withState(state) }
+      .flatMap { case (f, state) => f(state) }
 
   val updatedState: EventStream[S] =
-    eventBus.events
-      .collect { case SetState(s: S) => s }
+    eventBus.events.compose(setStateFiler)
 
   val outStream: EventStream[O] =
-    eventBus.events.collect { case Out(o: O) => o }
+    eventBus.events.compose(outFilter)
 
   val handlerSignal: Signal[InputHandler] =
     eventBus.events
-      .collect { case SetHandler(h: InputHandler) => h }
+      .compose(setHandlerFilter)
       .foldLeftRecover(Try(initialHandler)) {
         case (_, updated) => updated
       }
 
+  val loopbackFromCurrentHandler: EventStream[Event] =
+    eventBus.events
+      .compose(withHandlerFilter)
+      .withCurrentValueOf(handlerSignal)
+      .flatMap { case (f, handler) => f(handler) }
+
   val loopBackFromInput: EventStream[Event] =
     eventBus.events
-      .collect { case In(i: I @unchecked) => i }
+      .compose(inputFilter)
       .compose { ins =>
         val firstHandler =
           EventStream.fromValue((), emitOnce = true).sample(handlerSignal)
@@ -54,16 +68,16 @@ private[cycle] abstract class AirCycle[I, S, O] private[cycle] ()
         handlerStream.flatMap(handler => handler(ins))
       }
 
-  val noopEvents: EventStream[Unit] =
-    eventBus.events
-      .collect { case Noop => () }
+  val noopStream: EventStream[Unit] =
+    eventBus.events.compose(noopFilter).mapToStrict(())
 
   override def bind[E <: ReactiveElement.Base]: Mod[E] = Seq(
     updatedState --> stateHolder.toObserver,
     loopBackFromInput --> eventBus.writer,
     loopbackFromCurrentState --> eventBus.writer,
+    loopbackFromCurrentHandler --> eventBus.writer,
     // we just want to make sure all sources are connected even if user does not consumes ie, outStream.
-    noopEvents --> Observer.empty,
+    noopStream --> Observer.empty,
     outStream --> Observer.empty,
     stateSignal --> Observer.empty
   )

@@ -8,6 +8,6 @@ private[cycle] trait CycleImplicits {
 
   @inline implicit def toModifier[E <: Base, I, S, O](cycle: Cycle[I, S, O]): Mod[E] = cycle.bind
 
-  @inline implicit def mapInstance[I, S, O](cycle: Cycle[I, S, O]): MapTypes[I, S, O] = new MapTypes(cycle)
+  @inline implicit def mapInstance[I, S, O](cycle: Cycle[I, S, O]): CycleMap[I, S, O] = new CycleMap(cycle)
 
 }

@@ -24,8 +24,8 @@ object Counter {
     case Decrement => state.copy(state.value - 1, state.interactions + 1)
   }
 
-  def actionControls(actions: Observer[Action]): Mod[Div] = {
-    cycle.amend(
+  def actionControls(actions: Observer[Action]): Div = {
+    div(
       button(
         "Increment",
         onClick.mapTo(Increment) --> actions
@@ -48,29 +48,22 @@ object Counter {
     )
   }
 
-  def apply(state: EIO[State], actions: EIO[Action]): Div = {
-    val currentState: Signal[State] = state.startWith(initialState)
-
-    val updatedState: EventStream[State] = {
-      val a: EventStream[Action] = actions
-      a.withCurrentValueOf(currentState).mapN { case (action, state) => performAction(action, state) }
-    }
+  def apply(): Div = {
+    val counterCycle = Cycle[Action, State, Nothing]
+      .fromStateReducer(performAction.curried)
+      .withInitialState(initialState)
 
     div(
-      counterView(currentState),
-      actionControls(actions),
-      updatedState --> state
+      counterView(counterCycle.stateSignal),
+      actionControls(counterCycle.toObserver),
+      counterCycle.bind
     )
   }
 
 }
 
 object Main {
-  val state   = EIO[Counter.State]
-  val actions = EIO[Counter.Action]
-
   def main(args: Array[String]): Unit = {
-    println("BAR")
-    render(dom.document.getElementById("app"), Counter(state, actions))
+    render(dom.document.getElementById("app"), Counter())
   }
 }
