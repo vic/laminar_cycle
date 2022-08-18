@@ -8,7 +8,7 @@ import cycle.core._
 
 trait Cycle[-In, +State, +Out] extends Sink[In] with EventSource[Out] {
   def stateSignal: Signal[State]
-  def bind[E <: ReactiveElement.Base]: Mod[E]
+  def toModifier[E <: ReactiveElement.Base]: Mod[E]
 }
 
 object Cycle extends CycleFactories with CycleImplicits

@@ -2,7 +2,7 @@ package cycle.core
 
 import com.raquo.airstream.core.EventStream
 
-private[core] final class EventEmitter[I, S, O] private[core] (val eventTypes: EventTypes[I, S, O]) {
+final class EventEmitter[I, S, O] private[core] (val eventTypes: EventTypes[I, S, O]) {
   import eventTypes.*
 
   def noop: EventStream[Event] = emit(Noop)
@@ -21,6 +21,8 @@ private[core] final class EventEmitter[I, S, O] private[core] (val eventTypes: E
   def setHandler(h: InputHandler): EventStream[Event] = emit(SetHandler(h))
 
   def updateHandler(f: InputHandler => InputHandler): EventStream[Event] = withCurrentHandler(h => setHandler(f(h)))
+
+  def stateReducer(f: I => S => S): InputHandler = _.map(f).flatMap(updateState)
 
   private def emit[X](x: => X): EventStream[X] =
     EventStream.fromValue((), emitOnce = true).mapTo(x)

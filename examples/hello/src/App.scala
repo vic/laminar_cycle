@@ -4,7 +4,7 @@ import scala.scalajs.js
 import org.scalajs.dom
 import com.raquo.laminar.api.L.*
 import cycle.Cycle
-import cycle.core.{AirCycleFactory, EventEmitter}
+import cycle.core.EventEmitter
 
 object Main {
 

@@ -56,7 +56,7 @@ object Counter {
     div(
       counterView(counterCycle.stateSignal),
       actionControls(counterCycle.toObserver),
-      counterCycle.bind
+      counterCycle.toModifier
     )
   }
 

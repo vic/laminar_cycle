@@ -6,8 +6,8 @@ import com.raquo.laminar.nodes.ReactiveElement.Base
 
 private[cycle] trait CycleImplicits {
 
-  @inline implicit def toModifier[E <: Base, I, S, O](cycle: Cycle[I, S, O]): Mod[E] = cycle.bind
+  @inline implicit def toModifier[E <: Base, I, S, O](cycle: Cycle[I, S, O]): Mod[E] = cycle.toModifier
 
-  @inline implicit def mapInstance[I, S, O](cycle: Cycle[I, S, O]): CycleMap[I, S, O] = new CycleMap(cycle)
+  @inline implicit def transform[I, S, O](cycle: Cycle[I, S, O]): CycleTransform[I, S, O] = new CycleTransform(cycle)
 
 }

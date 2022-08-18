@@ -1,28 +1,31 @@
-package cycle.core
+package cycle.core.air
 
-import com.raquo.laminar.api.L._
+import cycle.Cycle
+import cycle.core.*
+
+import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveElement
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-private[cycle] trait AirCycle[I, S, O] extends cycle.Cycle[I, S, O] {
+private[air] trait AirCycle[I, S, O] extends Cycle[I, S, O] {
 
-  protected[cycle] type Event
-  protected[cycle] final type InputHandler = EventStream[I] => EventStream[Event]
-  protected[cycle] val withStateFilter: EventStream[Event] => EventStream[S => EventStream[Event]]
-  protected[cycle] val setStateFiler: EventStream[Event] => EventStream[S]
-  protected[cycle] val outFilter: EventStream[Event] => EventStream[O]
-  protected[cycle] val withHandlerFilter: EventStream[Event] => EventStream[InputHandler => EventStream[Event]]
-  protected[cycle] val setHandlerFilter: EventStream[Event] => EventStream[InputHandler]
-  protected[cycle] val inputFilter: EventStream[Event] => EventStream[I]
-  protected[cycle] val noopFilter: EventStream[Event] => EventStream[Any]
+  protected[air] type Event
+  protected[air] final type InputHandler = EventStream[I] => EventStream[Event]
+  protected[air] val withStateFilter: EventStream[Event] => EventStream[S => EventStream[Event]]
+  protected[air] val setStateFiler: EventStream[Event] => EventStream[S]
+  protected[air] val outFilter: EventStream[Event] => EventStream[O]
+  protected[air] val withHandlerFilter: EventStream[Event] => EventStream[InputHandler => EventStream[Event]]
+  protected[air] val setHandlerFilter: EventStream[Event] => EventStream[InputHandler]
+  protected[air] val inputFilter: EventStream[Event] => EventStream[I]
+  protected[air] val noopFilter: EventStream[Event] => EventStream[Any]
 
-  protected[cycle] def inEvent(i: I): Event
+  protected[air] def inEvent(i: I): Event
 
-  protected[cycle] val stateHolder: StateHolder[S]
-  protected[cycle] val initialHandler: InputHandler
+  protected[air] val stateHolder: StateHolder[S]
+  protected[air] val initialHandler: InputHandler
 
   override def stateSignal: Signal[S] = stateHolder.toObservable
 
@@ -71,7 +74,7 @@ private[cycle] trait AirCycle[I, S, O] extends cycle.Cycle[I, S, O] {
   val noopStream: EventStream[Unit] =
     eventBus.events.compose(noopFilter).mapToStrict(())
 
-  override def bind[E <: ReactiveElement.Base]: Mod[E] = Seq(
+  override def toModifier[E <: ReactiveElement.Base]: Mod[E] = Seq(
     updatedState --> stateHolder.toObserver,
     loopBackFromInput --> eventBus.writer,
     loopbackFromCurrentState --> eventBus.writer,
