@@ -5,10 +5,10 @@ import com.raquo.laminar.nodes.ReactiveElement
 
 import scala.annotation.targetName
 
-object BindWhileSignal {
+object BindWhileSignal:
 
   private def bindWhileSignal[E <: Element](active: SignalSource[Boolean])(dyn: DynamicOwner => DynamicSubscription)
-      : Binder[E] = {
+      : Binder[E] =
     Binder[E] { el =>
       val dynOwner = new DynamicOwner(() => ())
       def activate(a: Boolean): Unit =
@@ -21,22 +21,16 @@ object BindWhileSignal {
         new Subscription(ctx.owner, cleanup = () => activate(false))
       }
     }
-  }
 
-  implicit class RichSource[A](private val source: Source[A]) extends AnyVal {
+  implicit class RichSource[A](private val source: Source[A]) extends AnyVal:
     def bindWhile(active: SignalSource[Boolean]): PartiallyApplied[A] = new PartiallyApplied(source, active)
-  }
 
   private[BindWhileSignal] class PartiallyApplied[A] private[BindWhileSignal] (
       source: Source[A],
       active: SignalSource[Boolean]
-  ) {
-    def -->(sink: Sink[A]): Binder[ReactiveElement.Base] = {
+  ):
+    def -->(sink: Sink[A]): Binder[ReactiveElement.Base] =
       bindWhileSignal(active)(DynamicSubscription.subscribeSink(_, source.toObservable, sink))
-    }
 
-    def -->(onNext: A => Unit): Binder[ReactiveElement.Base] = {
+    def -->(onNext: A => Unit): Binder[ReactiveElement.Base] =
       bindWhileSignal(active)(DynamicSubscription.subscribeFn(_, source.toObservable, onNext))
-    }
-  }
-}

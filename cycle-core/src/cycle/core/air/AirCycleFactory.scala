@@ -17,7 +17,7 @@ private[core] final class AirCycleFactory[I, S, O] private[core] (
   private[air] final class PartiallyApplied private[air] (
       handler: EventEmitter[I, S, O] => (EventStream[I] => EventStream[Event])
   ):
-    def withStateHolder(state: StateHolder[S]): Cycle[I, S, O] =
+    def withStateHolder(state: => StateHolder[S]): Cycle[I, S, O] =
       AirCycle.fromEmitter(emitter)(handler(emitter), state)
 
     def withInitialState(s: => S): Cycle[I, S, O] = withStateHolder(StateHolder.fromValue(s))

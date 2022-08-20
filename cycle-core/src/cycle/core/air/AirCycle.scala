@@ -34,45 +34,43 @@ object AirCycle:
       eventToHandler: Arrow[E, Arrow[I, E]],
       eventToIn: Arrow[E, I],
       eventToNoop: Arrow[E, Any]
-  )(handler: Arrow[I, E], state: StateHolder[S]): Cycle[I, S, O] = new:
+  )(initialHandler: => Arrow[I, E], stateHolder: => StateHolder[S]): Cycle[I, S, O] = new:
+    private lazy val stateHolder_ = stateHolder
 
-    protected[air] val stateHolder: StateHolder[S] = state
-    protected[air] val initialHandler: Arrow[I, E] = handler
-
-    override def stateSignal: Signal[S] = stateHolder.toObservable
+    override def stateSignal: Signal[S] = stateHolder_.toObservable
 
     override def toObserver: Observer[I] = eventBus.writer.contramap(eventFromIn)
 
     override def toObservable: EventStream[O] = outStream
 
-    val eventBus: EventBus[E] = new EventBus()
+    private val eventBus: EventBus[E] = new EventBus()
 
-    val loopbackFromCurrentState: EventStream[E] =
+    private val loopbackFromCurrentState: EventStream[E] =
       eventBus.events
         .compose(eventToWithState)
         .withCurrentValueOf(stateSignal)
         .flatMap { case (f, state) => f(state) }
 
-    val updatedState: EventStream[S] =
+    private val updatedState: EventStream[S] =
       eventBus.events.compose(eventToState)
 
-    val outStream: EventStream[O] =
+    private val outStream: EventStream[O] =
       eventBus.events.compose(eventToOut)
 
-    val handlerSignal: Signal[Arrow[I, E]] =
+    private val handlerSignal: Signal[Arrow[I, E]] =
       eventBus.events
         .compose(eventToHandler)
         .foldLeftRecover(Try(initialHandler)) {
           case (_, updated) => updated
         }
 
-    val loopbackFromCurrentHandler: EventStream[E] =
+    private val loopbackFromCurrentHandler: EventStream[E] =
       eventBus.events
         .compose(eventToWithHandler)
         .withCurrentValueOf(handlerSignal)
         .flatMap { case (f, handler) => f(handler) }
 
-    val loopBackFromInput: EventStream[E] =
+    private val loopBackFromInput: EventStream[E] =
       eventBus.events
         .compose(eventToIn)
         .compose { ins =>
@@ -83,11 +81,11 @@ object AirCycle:
           handlerStream.flatMap(handler => handler(ins))
         }
 
-    val noopStream: EventStream[Unit] =
+    private val noopStream: EventStream[Unit] =
       eventBus.events.compose(eventToNoop).mapToStrict(())
 
     override def toModifier[E <: ReactiveElement.Base]: Mod[E] = Seq(
-      updatedState --> stateHolder.toObserver,
+      updatedState --> stateHolder_.toObserver,
       loopBackFromInput --> eventBus.writer,
       loopbackFromCurrentState --> eventBus.writer,
       loopbackFromCurrentHandler --> eventBus.writer,

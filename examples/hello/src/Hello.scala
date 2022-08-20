@@ -10,9 +10,11 @@ import scala.scalajs.js.annotation.JSExportTopLevel
 object Hello:
 
   val reverseStringCycle: Cycle[Any, String, Nothing] =
+    // code:+hello.cycle+
     Cycle[Any, String, Nothing]
       .fromStateReducer(_ => _.reverse.toLowerCase.capitalize)
       .withInitialState("Hello")
+    // code:-hello.cycle-
 
   val helloView: Div =
     div(
