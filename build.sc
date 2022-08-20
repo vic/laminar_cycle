@@ -3,6 +3,7 @@ import os._
 import mill._
 import mill.define.{Cross, Ctx, Sources, Target}
 import mill.scalajslib._
+import mill.scalajslib.api.{JsEnvConfig, ModuleKind, Report}
 import mill.scalalib._
 import mill.scalalib.publish._
 
@@ -51,8 +52,7 @@ object meta {
     val zio        = ivy"dev.zio::zio::${zioVersion}"
     val zioStreams = ivy"dev.zio::zio-streams::${zioVersion}"
     val javaTime   = ivy"io.github.cquiroz::scala-java-time::2.0.0"
-    val urlDsl     = ivy"be.doeraene::url-dsl::0.2.0"
-    val izumiBio   = ivy"io.7mind.izumi::fundamentals-bio::0.10.10"
+    val urlDsl     = ivy"be.doeraene::url-dsl::0.4.0"
   }
 }
 
@@ -143,7 +143,7 @@ object drivers extends Module {
 
   object all extends CrossO[all]
   class all(val scalaCross: String, val scalaJSCross: String) extends Driver {
-    override def artifactName = "cycle"
+    override def artifactName = "all"
 
     override def moduleDeps =
       super.moduleDeps ++
@@ -151,23 +151,6 @@ object drivers extends Module {
           .filter(_ != drivers.all)
           .map { mod => resolver.resolve(mod.asInstanceOf[Cross[BaseModule]]) }
           .asInstanceOf[Seq[Driver]]
-
-    def mdocProperties = T {
-      val cp = (
-        runClasspath()
-      ).map(_.path.toString).mkString(":")
-      val jsc = scalacPluginClasspath()
-        .map(_.path.toString)
-        .find(_.contains("scalajs-compiler"))
-        .get
-      val mdoc =
-        s"""
-          |js-classpath=${cp}
-          |js-scalac-options=-Xplugin:${jsc}
-          |""".stripMargin.trim
-      os.makeDir.all(T.ctx().dest)
-      os.write(T.ctx().dest / "mdoc.properties", mdoc)
-    }
   }
 
 //  object fetch                                                  extends CrossO[fetch]
@@ -206,13 +189,13 @@ object drivers extends Module {
 
 object examples extends Module {
 
-  def serve(exampleName: String) = T.command {
-    webserver.start
-    ()
-  }
-
   sealed trait Example extends BaseModule {
     override def moduleDeps = super.moduleDeps :+ drivers.all()
+    override def moduleKind: T[ModuleKind] = T { ModuleKind.ESModule }
+    def copyIntoDocs() = T.command[Unit] {
+      val x = fullLinkJS().dest.path
+      os.copy(x, os.pwd / "docs" / "js" / "examples", createFolders = true, mergeFolders = true, replaceExisting = true)
+    }
   }
 
   object hello extends CrossO[hello]
@@ -250,63 +233,4 @@ object examples extends Module {
 //    override def ivyDeps = super.ivyDeps() ++ Agg(meta.deps.urlDsl)
 //  }
 
-}
-
-import $ivy.`org.polynote::uzhttp:0.2.5`
-object webserver extends zio.App {
-  import scala.util.Try
-
-  import java.net.InetSocketAddress
-  import uzhttp.server.Server
-  import uzhttp.{Status, Request, Response, RefineOps}
-  import zio.ZIO
-
-  val (scalaVersion, sjsVersion) = meta.crossVersions.head
-
-  lazy val start = new Thread(() => main(Array.empty)).start
-
-  def jsPath(req: Request): Option[Path] = Try {
-    val path = RelPath(req.uri.getPath.stripPrefix("/"))
-    assert(path.segments.size == 2) // module/out.js
-    os.pwd / os.RelPath(s"out/examples/${path.segments.head}/$scalaVersion/$sjsVersion/fastOpt/dest/${path.last}")
-  }.toOption
-
-  def jsExists(req: Request): Boolean = jsPath(req).exists(os.isFile)
-
-  def exampleExists(req: Request): Boolean = exampleModule(req).isDefined
-
-  def exampleModule(req: Request): Option[String] = Try{
-    val paths = req.uri.getPath.stripPrefix("/").stripSuffix("/").split('/')
-    assert(paths.size == 1)
-    val js = os.pwd / os.RelPath(s"out/examples/${paths.head}/$scalaVersion/$sjsVersion/fastOpt/dest/out.js")
-    assert(os.isFile(js))
-    paths.head
-  }.toOption
-
-  override def run(args:  List[String]): ZIO[zio.ZEnv, Nothing, zio.ExitCode] =
-    Server.builder(new InetSocketAddress("127.0.0.1", 8080))
-      .handleSome {
-        case req if req.uri.getPath == "/" =>
-          val links = examples.millModuleDirectChildren.map { module =>
-            val name = module.millModuleBasePath.value.baseName
-            s"<li><a href='$name'>$name</a></li>"
-          }.mkString("<ul>", "", "</ul>")
-          ZIO.succeed(Response.html(s"<html><body><h1>Laminar.cycle Examples</h1>$links</body></html>"))
-
-        case req if jsExists(req) =>
-          Response.fromPath(jsPath(req).get.toNIO, req, contentType = "application/javascript").refineHTTP(req)
-
-        case req if exampleExists(req) =>
-          ZIO.effect {
-            os.read(examples.millModuleBasePath.value / "index.html")
-              .replace("EXAMPLE_MODULE", exampleModule(req).get)
-          }.fold(
-            t => Response.plain(t.getMessage, status = Status(500, "Internal Server Error")),
-            Response.html(_)
-          )
-
-        case req =>
-          ZIO.succeed(Response.plain(req.uri.toString, status = Status(404, "Not Found")))
-
-      }.serve.useForever.orDie
 }

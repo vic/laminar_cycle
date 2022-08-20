@@ -1,88 +1,98 @@
 package cycle.core.air
 
+import com.raquo.laminar.api.L.*
+import com.raquo.laminar.nodes.ReactiveElement
 import cycle.Cycle
 import cycle.core.*
 
-import com.raquo.laminar.api.L.*
-import com.raquo.laminar.nodes.ReactiveElement
+import scala.util.{Failure, Success, Try}
 
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
+object AirCycle:
+  type Arrow[A, B] = EventStream[A] => EventStream[B]
 
-private[air] trait AirCycle[I, S, O] extends Cycle[I, S, O] {
+  def fromEmitter[I, S, O](
+      emitter: EventEmitter[I, S, O]
+  ): (Arrow[I, Event], StateHolder[S]) => Cycle[I, S, O] =
+    import emitter.eventTypes.*
+    AirCycle[Event, I, S, O](
+      eventFromIn = In(_),
+      eventToWithState = _.collect { case CurrentState(f) => f },
+      eventToState = _.collect { case SetState(s) => s },
+      eventToOut = _.collect { case Out(o) => o },
+      eventToWithHandler = _.collect { case CurrentHandler(f) => f },
+      eventToHandler = _.collect { case SetHandler(h) => h },
+      eventToIn = _.collect { case In(i) => i },
+      eventToNoop = _.collect { case Noop => Noop }
+    )
 
-  protected[air] type Event
-  protected[air] final type InputHandler = EventStream[I] => EventStream[Event]
-  protected[air] val withStateFilter: EventStream[Event] => EventStream[S => EventStream[Event]]
-  protected[air] val setStateFiler: EventStream[Event] => EventStream[S]
-  protected[air] val outFilter: EventStream[Event] => EventStream[O]
-  protected[air] val withHandlerFilter: EventStream[Event] => EventStream[InputHandler => EventStream[Event]]
-  protected[air] val setHandlerFilter: EventStream[Event] => EventStream[InputHandler]
-  protected[air] val inputFilter: EventStream[Event] => EventStream[I]
-  protected[air] val noopFilter: EventStream[Event] => EventStream[Any]
+  def apply[E, I, S, O](
+      eventFromIn: I => E,
+      eventToWithState: Arrow[E, S => EventStream[E]],
+      eventToState: Arrow[E, S],
+      eventToOut: Arrow[E, O],
+      eventToWithHandler: Arrow[E, Arrow[I, E] => EventStream[E]],
+      eventToHandler: Arrow[E, Arrow[I, E]],
+      eventToIn: Arrow[E, I],
+      eventToNoop: Arrow[E, Any]
+  )(handler: Arrow[I, E], state: StateHolder[S]): Cycle[I, S, O] = new:
 
-  protected[air] def inEvent(i: I): Event
+    protected[air] val stateHolder: StateHolder[S] = state
+    protected[air] val initialHandler: Arrow[I, E] = handler
 
-  protected[air] val stateHolder: StateHolder[S]
-  protected[air] val initialHandler: InputHandler
+    override def stateSignal: Signal[S] = stateHolder.toObservable
 
-  override def stateSignal: Signal[S] = stateHolder.toObservable
+    override def toObserver: Observer[I] = eventBus.writer.contramap(eventFromIn)
 
-  override def toObserver: Observer[I] = eventBus.writer.contramap(inEvent)
+    override def toObservable: EventStream[O] = outStream
 
-  override def toObservable: EventStream[O] = outStream
+    val eventBus: EventBus[E] = new EventBus()
 
-  val eventBus: EventBus[Event] = new EventBus()
+    val loopbackFromCurrentState: EventStream[E] =
+      eventBus.events
+        .compose(eventToWithState)
+        .withCurrentValueOf(stateSignal)
+        .flatMap { case (f, state) => f(state) }
 
-  val loopbackFromCurrentState: EventStream[Event] =
-    eventBus.events
-      .compose(withStateFilter)
-      .withCurrentValueOf(stateSignal)
-      .flatMap { case (f, state) => f(state) }
+    val updatedState: EventStream[S] =
+      eventBus.events.compose(eventToState)
 
-  val updatedState: EventStream[S] =
-    eventBus.events.compose(setStateFiler)
+    val outStream: EventStream[O] =
+      eventBus.events.compose(eventToOut)
 
-  val outStream: EventStream[O] =
-    eventBus.events.compose(outFilter)
+    val handlerSignal: Signal[Arrow[I, E]] =
+      eventBus.events
+        .compose(eventToHandler)
+        .foldLeftRecover(Try(initialHandler)) {
+          case (_, updated) => updated
+        }
 
-  val handlerSignal: Signal[InputHandler] =
-    eventBus.events
-      .compose(setHandlerFilter)
-      .foldLeftRecover(Try(initialHandler)) {
-        case (_, updated) => updated
-      }
+    val loopbackFromCurrentHandler: EventStream[E] =
+      eventBus.events
+        .compose(eventToWithHandler)
+        .withCurrentValueOf(handlerSignal)
+        .flatMap { case (f, handler) => f(handler) }
 
-  val loopbackFromCurrentHandler: EventStream[Event] =
-    eventBus.events
-      .compose(withHandlerFilter)
-      .withCurrentValueOf(handlerSignal)
-      .flatMap { case (f, handler) => f(handler) }
+    val loopBackFromInput: EventStream[E] =
+      eventBus.events
+        .compose(eventToIn)
+        .compose { ins =>
+          val firstHandler =
+            EventStream.fromValue((), emitOnce = true).sample(handlerSignal)
+          val handlerStream =
+            EventStream.merge(firstHandler, handlerSignal.changes)
+          handlerStream.flatMap(handler => handler(ins))
+        }
 
-  val loopBackFromInput: EventStream[Event] =
-    eventBus.events
-      .compose(inputFilter)
-      .compose { ins =>
-        val firstHandler =
-          EventStream.fromValue((), emitOnce = true).sample(handlerSignal)
-        val handlerStream =
-          EventStream.merge(firstHandler, handlerSignal.changes)
-        handlerStream.flatMap(handler => handler(ins))
-      }
+    val noopStream: EventStream[Unit] =
+      eventBus.events.compose(eventToNoop).mapToStrict(())
 
-  val noopStream: EventStream[Unit] =
-    eventBus.events.compose(noopFilter).mapToStrict(())
-
-  override def toModifier[E <: ReactiveElement.Base]: Mod[E] = Seq(
-    updatedState --> stateHolder.toObserver,
-    loopBackFromInput --> eventBus.writer,
-    loopbackFromCurrentState --> eventBus.writer,
-    loopbackFromCurrentHandler --> eventBus.writer,
-    // we just want to make sure all sources are connected even if user does not consumes ie, outStream.
-    noopStream --> Observer.empty,
-    outStream --> Observer.empty,
-    stateSignal --> Observer.empty
-  )
-
-}
+    override def toModifier[E <: ReactiveElement.Base]: Mod[E] = Seq(
+      updatedState --> stateHolder.toObserver,
+      loopBackFromInput --> eventBus.writer,
+      loopbackFromCurrentState --> eventBus.writer,
+      loopbackFromCurrentHandler --> eventBus.writer,
+      // we just want to make sure all sources are connected even if user does not consumes ie, outStream.
+      noopStream --> Observer.empty,
+      outStream --> Observer.empty,
+      stateSignal --> Observer.empty
+    )

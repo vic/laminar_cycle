@@ -1,11 +1,12 @@
 package example.cycle_counter
 
-import cycle._
+import cycle.Cycle
 
-import com.raquo.laminar.api.L._
+import com.raquo.laminar.api.L.*
 import org.scalajs.dom
+import scalajs.js.annotation.JSExportTopLevel
 
-object Counter {
+object Counter:
 
   case class State(
       value: Int,
@@ -18,13 +19,12 @@ object Counter {
   case object Increment extends Action
   case object Decrement extends Action
 
-  def performAction(action: Action, state: State): State = action match {
+  def performAction(action: Action, state: State): State = action match
     case Reset     => state.copy(initialState.value, state.interactions + 1)
     case Increment => state.copy(state.value + 1, state.interactions + 1)
     case Decrement => state.copy(state.value - 1, state.interactions + 1)
-  }
 
-  def actionControls(actions: Observer[Action]): Div = {
+  def actionControls(actions: Observer[Action]): Div =
     div(
       button(
         "Increment",
@@ -39,16 +39,14 @@ object Counter {
         onClick.mapTo(Reset) --> actions
       )
     )
-  }
 
-  def counterView(state: Observable[State]): Div = {
+  def counterView(state: Observable[State]): Div =
     div(
       h2("Counter value: ", child.text <-- state.map(_.value.toString)),
       h2("Interactions: ", child.text <-- state.map(_.interactions.toString))
     )
-  }
 
-  def apply(): Div = {
+  def apply(): Div =
     val counterCycle = Cycle[Action, State, Nothing]
       .fromStateReducer(performAction.curried)
       .withInitialState(initialState)
@@ -58,12 +56,6 @@ object Counter {
       actionControls(counterCycle.toObserver),
       counterCycle.toModifier
     )
-  }
 
-}
-
-object Main {
-  def main(args: Array[String]): Unit = {
-    render(dom.document.getElementById("app"), Counter())
-  }
-}
+@JSExportTopLevel(name = "mount", moduleID = "Counter")
+def mount(parent: dom.Element): Unit = render(parent, Counter())

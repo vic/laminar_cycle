@@ -2,7 +2,7 @@ package cycle.core
 
 import com.raquo.airstream.core.EventStream
 
-final class EventEmitter[I, S, O] private[core] (val eventTypes: EventTypes[I, S, O]) {
+final class EventEmitter[I, S, O] private[core] (val eventTypes: EventTypes[I, S, O]):
   import eventTypes.*
 
   def noop: EventStream[Event] = emit(Noop)
@@ -26,4 +26,3 @@ final class EventEmitter[I, S, O] private[core] (val eventTypes: EventTypes[I, S
 
   private def emit[X](x: => X): EventStream[X] =
     EventStream.fromValue((), emitOnce = true).mapTo(x)
-}
